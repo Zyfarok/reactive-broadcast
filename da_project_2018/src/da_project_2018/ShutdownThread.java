@@ -22,7 +22,7 @@ public class ShutdownThread extends Thread {
 	 * @see java.lang.Thread#run()
 	 */
 	public void run()  {
-		Logging.log("shutting down...");
+		Logging.debug("shutting down...");
 		
 		// stop threads
 		for (Thread t: this.threads) {

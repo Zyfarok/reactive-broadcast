@@ -22,7 +22,7 @@ public class Main {
 		public void run() {
 			while (true) {
 				try {
-					System.out.println("thread " + this.name + " running");				
+					Logging.log("thread " + this.name + " running");				
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					return;
@@ -36,7 +36,7 @@ public class Main {
 
 	public static void main(String[] args) {		
 		
-		Logging.log("da_proc: running");
+		Logging.debug("da_proc: running");
 		
 		Thread[] threads = {
 			new Main.MyThread("1"),
