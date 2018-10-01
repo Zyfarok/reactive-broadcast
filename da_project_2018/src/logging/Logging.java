@@ -8,23 +8,28 @@ import java.util.logging.*;
  */
 public final class Logging {
 	private final static String name = "da_proc";
-	private final static Logger logger = Logger.getLogger(name);
-    private final static SimpleFormatter formatter = new SimpleFormatter();
-    private static ConsoleHandler ch;
+	private static Logger logger;
+    private static SimpleFormatter formatter = new SimpleFormatter();
+    private static StreamHandler sh;
 	private static FileHandler fh;
 	
 	// try to set the FileHandler and ConsoleHandler
 	static {
 		try {
+			Logger l0 = Logger.getLogger("");
+			l0.removeHandler(l0.getHandlers()[0]);			
+			
+			logger = Logger.getLogger(name);
+			logger.setLevel(Level.ALL);
+			
+			sh = new StreamHandler(System.out, new SimpleFormatter());
+			sh.setLevel(Level.ALL);
+			logger.addHandler(sh);
+
 			fh = new FileHandler(name + ".log");
 			fh.setFormatter(formatter);
 			fh.setLevel(Level.INFO);
-			logger.addHandler(fh);
-			
-			ch = new ConsoleHandler();
-			ch.setFormatter(formatter);
-			ch.setLevel(Level.ALL);
-			
+			logger.addHandler(fh);			
 		} catch (SecurityException | IOException e) {
 			System.out.println(e);
 			System.exit(1);
@@ -33,19 +38,21 @@ public final class Logging {
 	
 	public static void debug(String s) {
 		synchronized (logger) {
-			logger.log(Level.FINE, s);
+			logger.fine(s);
+			sh.flush();
 		}
 	}
 	
 	public static void log(String s) {
 		synchronized (logger) {
-			logger.log(Level.INFO, s);
+			logger.info(s);
+			sh.flush();
 		}
 	}
 	
 	public static void flush() {
 		synchronized (logger) {
-			ch.flush();
+			sh.flush();
 			fh.flush();
 		}
 	}

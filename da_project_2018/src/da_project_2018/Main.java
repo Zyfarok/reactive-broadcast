@@ -1,13 +1,7 @@
 package da_project_2018;
 
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 import logging.Logging;
-import java.util.logging.Logger;
-import java.lang.*;
-import java.nio.channels.ClosedByInterruptException;
-
-import da_project_2018.*;
+import config.Configuration;
 
 public class Main {
 	
@@ -34,9 +28,36 @@ public class Main {
 		}
 	}
 
-	public static void main(String[] args) {		
+	public static void main(String[] args) {
+		// da_proc n membership [extra params...]
+
+		// arguments validation
+		if (args.length < 2) {
+			throw new IllegalArgumentException("usage: da_proc n membership [extra params...]");
+		}
 		
-		Logging.debug("da_proc: running");
+		int n = Integer.parseInt(args[0]);
+		String membershipFilePath = args[1];		
+		
+		// read membership file
+		Configuration cfg;
+		try {
+			cfg = new Configuration(membershipFilePath);
+		} catch (Exception e) {
+			System.out.println("could not read membership file: " + e);
+			return;
+		}
+		
+		Logging.debug(cfg.toString());
+		
+		Configuration.Process p = cfg.getProcesses().get(n);
+		
+		if (p == null) {
+			System.out.println("could not read process " + n + " in configuration file: " + cfg.toString());
+			return;
+		} 
+		
+		Logging.debug("da_proc " + p.toString() + " running");
 		
 		Thread[] threads = {
 			new Main.MyThread("1"),
