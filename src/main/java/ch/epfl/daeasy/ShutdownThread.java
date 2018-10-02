@@ -1,6 +1,6 @@
-package da_project_2018;
+package ch.epfl.daeasy;
 
-import logging.Logging;
+import ch.epfl.daeasy.logging.Logging;
 
 public class ShutdownThread extends Thread {
 	private final Thread[] threads;

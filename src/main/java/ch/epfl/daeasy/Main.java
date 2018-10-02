@@ -1,7 +1,7 @@
-package da_project_2018;
+package ch.epfl.daeasy;
 
-import logging.Logging;
-import config.Configuration;
+import ch.epfl.daeasy.logging.Logging;
+import ch.epfl.daeasy.config.Configuration;
 
 public class Main {
 	

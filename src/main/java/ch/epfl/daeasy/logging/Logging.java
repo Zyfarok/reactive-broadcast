@@ -1,4 +1,4 @@
-package logging;
+package ch.epfl.daeasy.logging;
 
 import java.io.IOException;
 import java.util.logging.*;

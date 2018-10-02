@@ -1,4 +1,4 @@
-package config;
+package ch.epfl.daeasy.config;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
