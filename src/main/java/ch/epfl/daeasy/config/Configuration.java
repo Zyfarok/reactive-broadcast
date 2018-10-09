@@ -13,25 +13,6 @@ import java.util.Map;
 import javax.naming.ConfigurationException;
 
 public class Configuration {
-	
-	public class Process {
-		// id
-		private int i;
-		// network address
-		private InetSocketAddress address; 
-		
-		
-		private Process(int i, InetSocketAddress address) {
-			this.i = i;
-			this.address = address;
-		}
-		
-		@Override
-		public String toString() {
-			return new String("Process " + this.i + " @" + this.address.toString());
-		}
-	}
-	
 	// number of processes
 	private int n;
 	private Map<Integer, Process> processes;

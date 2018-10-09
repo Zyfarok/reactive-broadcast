@@ -2,6 +2,15 @@ package ch.epfl.daeasy;
 
 import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.config.Configuration;
+import ch.epfl.daeasy.config.Process;
+import ch.epfl.daeasy.rxsocket.*;
+
+import java.net.DatagramPacket;
+import java.net.InetSocketAddress;
+
+
+import io.reactivex.Observable;
+import io.reactivex.observables.GroupedObservable;
 
 public class Main {
 	
@@ -50,7 +59,7 @@ public class Main {
 		
 		Logging.debug(cfg.toString());
 		
-		Configuration.Process p = cfg.getProcesses().get(n);
+		Process p = cfg.getProcesses().get(n);
 		
 		if (p == null) {
 			System.out.println("could not read process " + n + " in configuration file: " + cfg.toString());
@@ -58,20 +67,12 @@ public class Main {
 		} 
 		
 		Logging.debug("da_proc " + p.toString() + " running");
-		
-		Thread[] threads = {
-			new Main.MyThread("1"),
-			new Main.MyThread("2")
-		};
-		
-		 Runtime.getRuntime().addShutdownHook(new ShutdownThread(threads));
-				
-		
-		for (int i = 0; i < threads.length; i++) {
-			Thread t = threads[i];
-			t.start();
-		}
-		
+
+		Thread[] threads = {};
+		Runtime.getRuntime().addShutdownHook(new ShutdownThread(threads));
+
+		Observable<DatagramPacket> packetsIn = RxUDPReader.create(8998, 100000);
+
 		return;
 	}
 	

@@ -11,23 +11,7 @@ import io.reactivex.observables.ConnectableObservable;
 import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
 
-class RxUDPReader {
-
-    // static Observable<DatagramPacket> packets(DatagramSocket socket) {
-    //     return Observable.<DatagramPacket>create(subscriber -> {
-    //         byte[] buf = new byte[socket.getReceiveBufferSize()];
-    //         DatagramPacket pkt = new DatagramPacket(buf, buf.length);
-
-    //         while (!socket.isClosed()) {
-    //             socket.receive(pkt);
-    //             subscriber.onNext(pkt);
-    //             if (subscriber.isDisposed()) {
-    //                 break;
-    //             }
-    //         }
-    //         subscriber.onComplete();
-    //     }).subscribeOn(Schedulers.io());
-    // }
+public class RxUDPReader {
 
     private static Cancellable getCancellable(final DatagramSocket udpSocket) {
         return new Cancellable() {
@@ -59,8 +43,7 @@ class RxUDPReader {
                         }
                     }
                 }).subscribeOn(Schedulers.io());
-}
-
+    }
 
     public static void main(String[] args) {
         System.out.println("hey");
