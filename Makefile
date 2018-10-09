@@ -1,5 +1,5 @@
 all: 
-	./gradlew build
+	./gradlew fatJar
 	cp build/libs/*.jar .
 
 clean:
