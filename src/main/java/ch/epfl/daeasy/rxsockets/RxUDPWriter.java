@@ -1,4 +1,4 @@
-package ch.epfl.daeasy.rxsocket;
+package ch.epfl.daeasy.rxsockets;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;

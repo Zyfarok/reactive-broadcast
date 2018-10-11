@@ -1,12 +1,11 @@
-package ch.epfl.daeasy.rxsocket;
+package ch.epfl.daeasy.rxsockets;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
-import ch.epfl.daeasy.config.Configuration;
-import ch.epfl.daeasy.rxsocket.RxUDPWriter;
-import ch.epfl.daeasy.rxsocket.RxUDPReader;
 import io.reactivex.Observable;
+
+import ch.epfl.daeasy.config.Configuration;
 
 public class RxUDPSocket extends RxSocket<DatagramPacket> {
     final DatagramSocket udpSocket;
