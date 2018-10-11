@@ -6,8 +6,14 @@ import java.net.DatagramSocket;
 import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
 
-public class RxUDPWriter {
-    public static void create(final Observable<DatagramPacket> dpOut, final DatagramSocket udpSocket) {
+public class RxUDPOutputBuilder extends RxOutputBuilder<DatagramPacket> {
+    final DatagramSocket udpSocket;
+
+    public RxUDPOutputBuilder(final DatagramSocket us) {
+        this.udpSocket = us;
+    }
+
+    public void build(final Observable<DatagramPacket> dpOut) {
         dpOut.observeOn(Schedulers.io()).subscribe(dpacket -> udpSocket.send(dpacket));
     }
 }
