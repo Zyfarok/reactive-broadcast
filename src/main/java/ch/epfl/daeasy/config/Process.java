@@ -4,9 +4,9 @@ import java.net.InetSocketAddress;
 
 public class Process {
     // id
-    private int i;
+    public final int i;
     // network address
-    private InetSocketAddress address; 
+    public final InetSocketAddress address; 
     
     
     public Process(int i, InetSocketAddress address) {

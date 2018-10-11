@@ -4,62 +4,51 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
 public class Configuration {
-	// number of processes
-	private int n;
-	private Map<Integer, Process> processes;
-	// TODO to be expanded
+	public final Map<Integer, Process> processes;
+	public final Integer id;
+	public final DatagramSocket udpSocket;
 	
 	/*
 	 * Reads file and builds Configuration.
 	 */
-	public Configuration(String filepath) throws FileNotFoundException, IOException, ConfigurationException {
-        BufferedReader reader = 
-            new BufferedReader(new FileReader(filepath));
-        
-        // read first line
-        String sn = reader.readLine();
-        if (sn == null) {
-        	throw new ConfigurationException("first line of configuration should be an integer");
-        }
-        this.n = Integer.parseInt(sn);
-        
-        this.processes = new HashMap<Integer, Process>();
-        for (int i = 0; i < n; i++) {
-        	String sp = reader.readLine();
-        	String[] sps = sp.split(" ");
-        	if (sps.length < 3) {
-            	throw new ConfigurationException("expected line 'i ip port', got: " + sp);
-        	}
-        	int ni = Integer.parseInt(sps[0]);
-        	int port = Integer.parseInt(sps[2]);
-        	
-        	this.processes.put(ni, 
-        			new Process(i, new InetSocketAddress(sps[1], port)));
-        }
-        
-        // rest of file
-        // TODO to be expanded
-        
-        reader.close();
-	}
-	
-	public Map<Integer, Process> getProcesses() {
-		return new HashMap<Integer, Process>(this.processes);
+	public Configuration(Integer id, String filepath) throws FileNotFoundException, IOException, ConfigurationException {
+		this.id = id;
+		
+		Map<Integer, Process> tempProcesses = new HashMap<Integer, Process>();
+		BufferedReader reader = new BufferedReader(new FileReader(filepath));
+		try {
+			String sp = reader.readLine();
+			for (int i = 0; sp != null; i++, sp = reader.readLine()) {
+				String[] sps = sp.split(" ");
+				if (sps.length != 2) {
+					throw new ConfigurationException("expected line 'ip port', got: " + sp);
+				}
+				int port = Integer.parseInt(sps[1]);
+				
+				tempProcesses.put(i, new Process(i, new InetSocketAddress(sps[0], port)));
+			}
+		} finally {
+			reader.close();
+		}
+
+		this.processes = Collections.unmodifiableMap(tempProcesses);
+
+		udpSocket = new DatagramSocket(this.processes.get(id).address);
 	}
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Membership ");
-		sb.append("#" + this.n);
+		sb.append("#" + this.processes.size());
 		sb.append(" with processes: \n");
 		for (Process p : this.processes.values()) {
 			sb.append(p.toString());
