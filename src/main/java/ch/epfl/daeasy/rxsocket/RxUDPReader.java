@@ -7,12 +7,9 @@ import io.reactivex.functions.Cancellable;
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableEmitter;
-import io.reactivex.observables.ConnectableObservable;
-import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
 
 public class RxUDPReader {
-
     private static Cancellable getCancellable(final DatagramSocket udpSocket) {
         return new Cancellable() {
             @Override
@@ -24,16 +21,15 @@ public class RxUDPReader {
         };
     }
 
-    public static Observable<DatagramPacket> create(final int portNo, final int bufferSizeInBytes) {
+    public static Observable<DatagramPacket> create(final DatagramSocket udpSocket) {
         return Observable.create(
                 new ObservableOnSubscribe<DatagramPacket>() {
                     @Override
                     public void subscribe(ObservableEmitter<DatagramPacket> emitter) throws Exception {
-                        final DatagramSocket udpSocket = new DatagramSocket(portNo);
                         emitter.setCancellable(RxUDPReader.getCancellable(udpSocket));
                         while (true) {
                             try {
-                                byte[] rcvBuffer = new byte[bufferSizeInBytes];
+                                byte[] rcvBuffer = new byte[1000000];
                                 DatagramPacket datagramPacket = new DatagramPacket(rcvBuffer, rcvBuffer.length);
                                 udpSocket.receive(datagramPacket);
                                 emitter.onNext(datagramPacket);
@@ -42,25 +38,7 @@ public class RxUDPReader {
                             }
                         }
                     }
-                }).subscribeOn(Schedulers.io());
-    }
-
-    public static void main(String[] args) {
-        System.out.println("hey");
-        try {
-            // DatagramSocket socket = new DatagramSocket(8998);
-            Observable<DatagramPacket> source = RxUDPReader.create(8998, 1000000).share();
-            // ConnectableObservable<DatagramPacket> csource = source.publish();
-
-            source
-                .observeOn(Schedulers.trampoline())
-                .subscribe(pkt -> System.out.println(new String(pkt.getData(), pkt.getOffset(), pkt.getLength())));
-
-            source
-                .observeOn(Schedulers.trampoline())
-                .blockingSubscribe(pkt -> System.out.println("NEW PACKET!"));
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+                }
+        ).subscribeOn(Schedulers.io());
     }
 }
