@@ -9,14 +9,8 @@ import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.schedulers.Schedulers;
 
-public class RxUDPInputBuilder {
-    final DatagramSocket udpSocket;
-
-    public RxUDPInputBuilder(final DatagramSocket udpSocket) {
-        this.udpSocket = udpSocket;
-    }
-
-    private Cancellable buildCancellable() {
+public class RxUDPInputCreator {
+    private static Cancellable createCancellable(final DatagramSocket udpSocket) {
         return new Cancellable() {
             @Override
             public void cancel() throws Exception {
@@ -27,13 +21,12 @@ public class RxUDPInputBuilder {
         };
     }
 
-    public Observable<DatagramPacket> build() {
-        Cancellable cancellable = buildCancellable();
+    public static Observable<DatagramPacket> create(final DatagramSocket udpSocket) {
         return Observable.create(
                 new ObservableOnSubscribe<DatagramPacket>() {
                     @Override
                     public void subscribe(ObservableEmitter<DatagramPacket> emitter) throws Exception {
-                        emitter.setCancellable(cancellable);
+                        emitter.setCancellable(createCancellable(udpSocket));
                         while (true) {
                             try {
                                 byte[] rcvBuffer = new byte[1000000]; // TODO : Define the array size in an a better fashion.
