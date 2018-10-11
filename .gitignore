@@ -2,8 +2,9 @@
 .idea
 .gradle
 
-bin
-out
-build
+bin/
+out/
+build/
+membership
 
 /*.jar
