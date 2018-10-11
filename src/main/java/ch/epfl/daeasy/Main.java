@@ -1,16 +1,9 @@
 package ch.epfl.daeasy;
 
 import ch.epfl.daeasy.logging.Logging;
+import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
-import ch.epfl.daeasy.rxsocket.*;
-
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-
-
-import io.reactivex.Observable;
-import io.reactivex.observables.GroupedObservable;
 
 public class Main {
 	
@@ -51,7 +44,7 @@ public class Main {
 		// read membership file
 		Configuration cfg;
 		try {
-			cfg = new Configuration(membershipFilePath);
+			cfg = new Configuration(n, membershipFilePath);
 		} catch (Exception e) {
 			System.out.println("could not read membership file: " + e);
 			return;
@@ -59,7 +52,7 @@ public class Main {
 		
 		Logging.debug(cfg.toString());
 		
-		Process p = cfg.getProcesses().get(n);
+		Process p = cfg.processes.get(n);
 		
 		if (p == null) {
 			System.out.println("could not read process " + n + " in configuration file: " + cfg.toString());
@@ -71,7 +64,7 @@ public class Main {
 		Thread[] threads = {};
 		Runtime.getRuntime().addShutdownHook(new ShutdownThread(threads));
 
-		Observable<DatagramPacket> packetsIn = RxUDPReader.create(8998, 100000);
+		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 
 		return;
 	}
