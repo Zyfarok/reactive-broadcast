@@ -13,7 +13,7 @@ public class RxUDPOutputBuilder extends RxOutputBuilder<DatagramPacket> {
         this.udpSocket = us;
     }
 
-    public void build(final Observable<DatagramPacket> dpOut) {
+    public void buildOutputPipe(final Observable<DatagramPacket> dpOut) {
         dpOut.observeOn(Schedulers.io()).subscribe(dpacket -> udpSocket.send(dpacket));
     }
 }
