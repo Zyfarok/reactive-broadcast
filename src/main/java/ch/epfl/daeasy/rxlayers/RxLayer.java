@@ -1,4 +1,4 @@
-package ch.epfl.daeasy.layers;
+package ch.epfl.daeasy.rxlayers;
 
 import ch.epfl.daeasy.rxsockets.RxSocket;
 

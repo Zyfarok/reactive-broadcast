@@ -2,7 +2,7 @@ package ch.epfl.daeasy.rxsockets;
 
 import io.reactivex.Observable;
 
-import ch.epfl.daeasy.layers.RxLayer;
+import ch.epfl.daeasy.rxlayers.RxLayer;
 
 public class RxSocket<A> {
     public final Observable<A> inputPipe;

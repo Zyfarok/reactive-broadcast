@@ -1,4 +1,4 @@
-package ch.epfl.daeasy.layers;
+package ch.epfl.daeasy.rxlayers;
 
 import com.google.common.base.Converter;
 
