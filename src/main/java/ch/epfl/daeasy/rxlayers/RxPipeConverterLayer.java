@@ -6,9 +6,9 @@ import io.reactivex.Observable;
 
 import ch.epfl.daeasy.rxsockets.RxSocket;
 
-public class RxConverterLayer<A,B> extends RxLayer<A,B> {
+public class RxPipeConverterLayer<A,B> extends RxLayer<A,B> {
     final private Converter<Observable<B>,Observable<A>> converter;
-    public RxConverterLayer(final Converter<Observable<B>,Observable<A>> bottomUpConverter) {
+    public RxPipeConverterLayer(final Converter<Observable<B>,Observable<A>> bottomUpConverter) {
         this.converter = bottomUpConverter;
     }
 
