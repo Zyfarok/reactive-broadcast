@@ -8,8 +8,8 @@ import ch.epfl.daeasy.rxsockets.RxSocket;
 
 public class RxConverterLayer<A,B> extends RxLayer<A,B> {
     final private Converter<Observable<B>,Observable<A>> converter;
-    public RxConverterLayer(final Converter<Observable<B>,Observable<A>> converter) {
-        this.converter = converter;
+    public RxConverterLayer(final Converter<Observable<B>,Observable<A>> bottomUpConverter) {
+        this.converter = bottomUpConverter;
     }
 
     public RxSocket<A> stackOn(final RxSocket<B> subSocket) {
