@@ -97,6 +97,14 @@ public class Main {
 		sock.outputPipe.onNext("5");
 		sock.outputPipe.onNext("6");
 
+		d1.dispose();
+
+        sock.outputPipe.onNext("7");
+        sock.outputPipe.onNext("8");
+        sock.outputPipe.onNext("9");
+
+        d2.dispose();
+
 		System.out.println("Done pushing.");
 
 		try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
