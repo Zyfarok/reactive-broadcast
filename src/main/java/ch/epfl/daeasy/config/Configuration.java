@@ -16,25 +16,35 @@ public class Configuration {
 	public final Map<Integer, Process> processes;
 	public final Integer id;
 	public final DatagramSocket udpSocket;
-	
+
 	/*
 	 * Reads file and builds Configuration.
 	 */
-	public Configuration(Integer id, String filepath) throws FileNotFoundException, IOException, ConfigurationException {
+	public Configuration(Integer id, String filepath)
+			throws FileNotFoundException, IOException, ConfigurationException {
 		this.id = id;
-		
+
 		Map<Integer, Process> tempProcesses = new HashMap<Integer, Process>();
 		BufferedReader reader = new BufferedReader(new FileReader(filepath));
+
+		// read first line
+		String sn = reader.readLine();
+		if (sn == null) {
+			reader.close();
+			throw new ConfigurationException("first line of configuration should be an integer");
+		}
+		int n = Integer.parseInt(sn);
 		try {
-			String sp = reader.readLine();
-			for (int i = 0; sp != null; i++, sp = reader.readLine()) {
+			for (int i = 0; i < n; i++) {
+				String sp = reader.readLine();
 				String[] sps = sp.split(" ");
-				if (sps.length != 2) {
-					throw new ConfigurationException("expected line 'ip port', got: " + sp);
+				if (sps.length != 3) {
+					throw new ConfigurationException("expected line 'n ip port', got: " + sp);
 				}
-				int port = Integer.parseInt(sps[1]);
-				
-				tempProcesses.put(i, new Process(i, new InetSocketAddress(sps[0], port)));
+				int num = Integer.parseInt(sps[0]);
+				int port = Integer.parseInt(sps[2]);
+
+				tempProcesses.put(i, new Process(num, new InetSocketAddress(sps[1], port)));
 			}
 		} finally {
 			reader.close();
@@ -44,7 +54,7 @@ public class Configuration {
 
 		udpSocket = new DatagramSocket(this.processes.get(id).address);
 	}
-	
+
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Membership ");
@@ -57,4 +67,3 @@ public class Configuration {
 		return sb.toString();
 	}
 }
-
