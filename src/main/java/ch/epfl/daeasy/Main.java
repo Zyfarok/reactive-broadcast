@@ -85,7 +85,7 @@ public class Main {
 		// udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
 		RxLoopbackSocket<String> sock = new RxLoopbackSocket<>();
 
-		Disposable d1 = sock.outputPipe.forEach(System.out::println);
+		Disposable d1 = sock.inputPipe.forEach(System.out::println);
 
 		sock.outputPipe.onNext("1");
 		sock.outputPipe.onNext("2");
