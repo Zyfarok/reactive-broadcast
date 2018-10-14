@@ -45,12 +45,12 @@ class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
             // Plug its output
             groupedSubSocket.outputPipe.subscribe(subSocket.outputPipe);
 
-            // #### Second step : Build innerSocket (apply innerLayer to groupedSubSocket)
+            // #### Second step : Build groupedInnerSocket (apply innerLayer to groupedSubSocket)
             RxSocket<A> groupedInnerSocket = groupedSubSocket.stack(innerLayer);
 
             // #### Third step : Lock the outgoing inputPipe of the innerSocket until subscribed using a last socket
             RxSocket<A> groupedUpperSocket = new RxSocket<>(
-                    groupedInnerSocket.inputPipe.publish().refCount(),
+                    groupedInnerSocket.inputPipe.publish().refCount(), // Keeps the values in the pipe until subscribed
                     groupedInnerSocket.outputPipe
             );
             // #### Forth step : Connect the last socket to the incoming outputs
