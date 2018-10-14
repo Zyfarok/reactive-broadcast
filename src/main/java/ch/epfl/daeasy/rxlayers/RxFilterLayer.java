@@ -4,12 +4,13 @@ import com.google.common.base.Converter;
 import io.reactivex.functions.Predicate;
 
 import javax.annotation.Nonnull;
-class RxFilterLayer<A> extends RxPipeConverterLayer<A,A> {
+
+public class RxFilterLayer<A> extends RxPipeConverterLayer<A, A> {
     public RxFilterLayer(@Nonnull Predicate<A> inFilter, @Nonnull Predicate<A> outFilter) {
         super(Converter.from(x -> x.filter(inFilter), x -> x.filter(outFilter)));
     }
 
-    public RxFilterLayer(Predicate<A> filter){
+    public RxFilterLayer(Predicate<A> filter) {
         this(filter, filter);
     }
 
