@@ -7,6 +7,12 @@ version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
+compileJava {
+    options.compilerArgs << '-XDignore.symbol.file'
+    options.fork = true
+    options.forkOptions.executable = 'javac'
+}
+
 task fatJar(type: Jar) {
 	manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',  
