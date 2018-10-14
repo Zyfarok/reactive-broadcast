@@ -1,9 +1,20 @@
 package ch.epfl.daeasy;
 
-import ch.epfl.daeasy.logging.Logging;
-import ch.epfl.daeasy.rxsockets.RxUDPSocket;
+import java.net.DatagramPacket;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import io.reactivex.Observable;
+
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
+import ch.epfl.daeasy.logging.Logging;
+import ch.epfl.daeasy.protocol.Message;
+import ch.epfl.daeasy.rxsockets.RxSocketLoopback;
+import ch.epfl.daeasy.rxsockets.RxUDPSocket;
+import ch.epfl.daeasy.rxsockets.RxSocketLoopback;
 import ch.epfl.daeasy.signals.StartSignalHandler;
 import ch.epfl.daeasy.signals.StopSignalHandler;;
 
@@ -71,8 +82,15 @@ public class Main {
 
 		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 
-		udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
+		// udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
+		List<DatagramPacket> pktList = new ArrayList<DatagramPacket>();
+		pktList.add(new Message(new InetSocketAddress("peer", 10000), 1).toDatagramPacket());
+		pktList.add(new Message(new InetSocketAddress("peer", 10000), 2).toDatagramPacket());
+		pktList.add(new Message(new InetSocketAddress("peer", 10000), 3).toDatagramPacket());
+		RxSocketLoopback<DatagramPacket> sock = new RxSocketLoopback<>(
+				Observable.fromIterable(pktList).delay(1, TimeUnit.SECONDS));
 
+		sock.outputPipe.blockingSubscribe(machin -> System.out.println(machin));
 		return;
 	}
 
