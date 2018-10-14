@@ -4,8 +4,7 @@ import io.reactivex.subjects.PublishSubject;
 
 public class RxLoopbackSocket<A> extends RxSocket<A> {
     private RxLoopbackSocket(PublishSubject<A> loopbackSubject) {
-        super(loopbackSubject);
-        this.outputPipe.subscribe(loopbackSubject);
+        super(loopbackSubject, loopbackSubject);
     }
 
     public RxLoopbackSocket() {
