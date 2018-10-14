@@ -6,24 +6,30 @@ import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
 import io.reactivex.subjects.PublishSubject;
 
-class RxGroupedLayer<K, A> extends RxLayer<A,A> {
-    private final Function<A,K> key;
-    private final RxLayer<A,A> innerLayer;
+class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
+    private final Function<A,K> keyA;
+    private final Function<B,K> keyB;
+    private final RxLayer<A,B> innerLayer;
 
-    public RxGroupedLayer(Function<A,K> key, RxLayer<A,A> innerLayer) {
-        this.key = key;
+    public RxGroupedLayer(Function<A,K> keyA, Function<B,K> keyB, RxLayer<A,B> innerLayer) {
+        this.keyA = keyA;
+        this.keyB = keyB;
         this.innerLayer = innerLayer;
     }
 
-    public RxSocket<A> stackOn(RxSocket<A> subSocket) {
+    public static <K,A> RxGroupedLayer<K,A,A> create(Function<A,K> key, RxLayer<A,A> innerLayer) {
+        return new RxGroupedLayer<>(key,key,innerLayer);
+    }
+
+    public RxSocket<A> stackOn(RxSocket<B> subSocket) {
         // #### Zero step : init stuff that will be needed for socket creation
         // Setup incoming input pipe
-        Observable<GroupedObservable<K,A>> incomingGroupedInputPipes =
-                subSocket.inputPipe.groupBy(key);
+        Observable<GroupedObservable<K,B>> incomingGroupedInputPipes =
+                subSocket.inputPipe.groupBy(keyB);
 
         // Setup incoming ouput pipe
         PublishSubject<A> incomingOutputPipe = PublishSubject.create();
-        Observable<GroupedObservable<K,A>> incomingGroupedOutputPipes = incomingOutputPipe.groupBy(key);
+        Observable<GroupedObservable<K,A>> incomingGroupedOutputPipes = incomingOutputPipe.groupBy(keyA);
         //Observable<ConnectableObservable<A>> connectableOutputPipes = incomingGroupedOutputPipes.map(Observable::publish);
 
         // Create observable of keys to trigger socket creation.
@@ -33,9 +39,9 @@ class RxGroupedLayer<K, A> extends RxLayer<A,A> {
         Observable<RxSocket<A>> socketObservable = keyObservable.map(key -> {
             // #### First step : Build groupedSubSocket
             // Setup input subject but we don't feed it yet
-            PublishSubject<A> groupedSubSocketSubjectInput = PublishSubject.create();
+            PublishSubject<B> groupedSubSocketSubjectInput = PublishSubject.create();
             // Build the groupedSubSocket
-            RxSocket<A> groupedSubSocket = new RxSocket<>(groupedSubSocketSubjectInput);
+            RxSocket<B> groupedSubSocket = new RxSocket<>(groupedSubSocketSubjectInput);
             // Plug its output
             groupedSubSocket.outputPipe.subscribe(subSocket.outputPipe);
 
