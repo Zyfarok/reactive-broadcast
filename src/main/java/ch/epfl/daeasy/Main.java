@@ -9,6 +9,7 @@ import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import ch.epfl.daeasy.signals.StartSignalHandler;
 import ch.epfl.daeasy.signals.StopSignalHandler;
 import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
@@ -42,6 +43,7 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
+		/*
 		// da_proc n membership [extra params...]
 
 		// arguments validation
@@ -79,17 +81,25 @@ public class Main {
 		StartSignalHandler.install("USR2");
 
 		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
-
+		*/
 		// udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
-		List<DatagramPacket> pktList = new ArrayList<>();
-		pktList.add(new Message(new InetSocketAddress("peer", 10000), 1).toDatagramPacket());
-		pktList.add(new Message(new InetSocketAddress("peer", 10000), 2).toDatagramPacket());
-		pktList.add(new Message(new InetSocketAddress("peer", 10000), 3).toDatagramPacket());
-		RxLoopbackSocket<DatagramPacket> sock = new RxLoopbackSocket<>();
+		RxLoopbackSocket<String> sock = new RxLoopbackSocket<>();
 
-		sock.inputPipe.blockingSubscribe(System.out::println);
+		Disposable d1 = sock.outputPipe.forEach(System.out::println);
 
-		Observable.fromIterable(pktList).delay(1, TimeUnit.SECONDS).subscribe(sock.outputPipe);
+		sock.outputPipe.onNext("1");
+		sock.outputPipe.onNext("2");
+		sock.outputPipe.onNext("3");
+
+		Disposable d2 = sock.inputPipe.forEach(s -> System.out.println(s + "bis"));
+
+		sock.outputPipe.onNext("4");
+		sock.outputPipe.onNext("5");
+		sock.outputPipe.onNext("6");
+
+		System.out.println("Done pushing.");
+
+		try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
 	}
 
 }
