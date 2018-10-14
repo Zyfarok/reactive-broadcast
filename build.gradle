@@ -39,7 +39,6 @@ dependencies {
 
 jar {
     manifest {
-        // attributes 'Main-Class': 'ch.epfl.daeasy.Main'
-        attributes 'Main-Class': 'ch.epfl.daeasy.rxsocket.RxUDPReader'
+        attributes 'Main-Class': 'ch.epfl.daeasy.Main'
     }
 }
