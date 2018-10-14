@@ -1,24 +1,20 @@
 package ch.epfl.daeasy;
 
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
-import io.reactivex.Observable;
-
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.Message;
-import ch.epfl.daeasy.rxsockets.RxSocketLoopback;
+import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
 import ch.epfl.daeasy.rxsockets.RxUDPSocket;
-import ch.epfl.daeasy.rxsockets.RxSocketLoopback;
 import ch.epfl.daeasy.signals.StartSignalHandler;
-import ch.epfl.daeasy.signals.StopSignalHandler;;
+import ch.epfl.daeasy.signals.StopSignalHandler;
+import io.reactivex.Observable;
+
+import java.net.DatagramPacket;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -45,7 +41,7 @@ public class Main {
 		}
 	}
 
-	public static int main(String[] args) {
+	public static void main(String[] args) {
 		// da_proc n membership [extra params...]
 
 		// arguments validation
@@ -85,7 +81,7 @@ public class Main {
 		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 
 		// udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
-		List<DatagramPacket> pktList = new ArrayList<DatagramPacket>();
+		List<DatagramPacket> pktList = new ArrayList<>();
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 1).toDatagramPacket());
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 2).toDatagramPacket());
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 3).toDatagramPacket());
@@ -94,8 +90,6 @@ public class Main {
 		sock.inputPipe.blockingSubscribe(System.out::println);
 
 		Observable.fromIterable(pktList).delay(1, TimeUnit.SECONDS).subscribe(sock.outputPipe);
-
-		return 0;
 	}
 
 }
