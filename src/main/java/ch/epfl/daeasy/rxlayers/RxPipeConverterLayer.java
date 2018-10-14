@@ -14,9 +14,9 @@ public class RxPipeConverterLayer<A,B> extends RxLayer<A,B> {
     }
 
     public RxSocket<A> stackOn(RxSocket<B> subSocket) {
-        PublishSubject<A> subject = PublishSubject.create();
-        converter.reverse().convert(subject).subscribe(subSocket.outputPipe);
-        return new RxSocket<>(converter.convert(subSocket.inputPipe), subject);
+        RxSocket<A> socket = new RxSocket<>(converter.convert(subSocket.inputPipe));
+        converter.reverse().convert(socket.outputPipe).subscribe(subSocket.outputPipe);
+        return socket;
     }
 
     public RxPipeConverterLayer<B,A> reverse() {

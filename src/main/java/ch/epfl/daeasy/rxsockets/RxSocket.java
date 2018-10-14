@@ -8,6 +8,10 @@ public class RxSocket<A> {
     public final Observable<A> inputPipe;
     public final PublishSubject<A> outputPipe;
 
+    public RxSocket(Observable<A> in) {
+        this(in, PublishSubject.create());
+    }
+
     public RxSocket(Observable<A> in, PublishSubject<A> out) {
         this.inputPipe = in;
         this.outputPipe = out;
