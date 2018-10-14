@@ -28,7 +28,7 @@ public class StopSignalHandler implements SignalHandler {
 	}
 
 	public void handle(Signal signal) {
-		Logging.log("stopsignalhandler: received " + signal.getName());
+		Logging.debug("stopsignalhandler: received " + signal.getName());
 		for (Thread t : this.threads) {
 			t.interrupt();
 		}

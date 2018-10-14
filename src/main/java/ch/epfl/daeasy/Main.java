@@ -4,7 +4,8 @@ import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
-import ch.epfl.daeasy.signals.*;
+import ch.epfl.daeasy.signals.StartSignalHandler;
+import ch.epfl.daeasy.signals.StopSignalHandler;;
 
 public class Main {
 
@@ -61,10 +62,12 @@ public class Main {
 		}
 
 		Logging.debug("da_proc " + p.toString() + " running");
+		Logging.log("da_proc " + p.toString() + " running");
 
 		Thread[] threads = {};
 		StopSignalHandler.install("INT", threads);
 		StopSignalHandler.install("TERM", threads);
+		StartSignalHandler.install("USR2");
 
 		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 
