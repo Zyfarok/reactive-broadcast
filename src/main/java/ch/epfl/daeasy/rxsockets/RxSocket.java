@@ -1,21 +1,23 @@
 package ch.epfl.daeasy.rxsockets;
 
+import ch.epfl.daeasy.rxlayers.RxLayer;
 import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
 
 public class RxSocket<A> {
-    private final Observable<A> inputPipe;
-    private final RxOutputBuilder<A> outputBuilder;
+    public final Observable<A> inputPipe;
+    public final PublishSubject<A> outputPipe;
 
-    public RxSocket(Observable<A> in, RxOutputBuilder<A> ob) {
+    public RxSocket(Observable<A> in) {
+        this(in, PublishSubject.create());
+    }
+
+    public RxSocket(Observable<A> in, PublishSubject<A> out) {
         this.inputPipe = in;
-        this.outputBuilder = ob;
+        this.outputPipe = out;
     }
 
-    public Observable<A> getInputPipe() {
-        return inputPipe;
-    }
-    
-    public void setOutputPipe(Observable<A> out) {
-        outputBuilder.build(out);
+    public <B> RxSocket<B> stack(RxLayer<B,A> layer) {
+        return layer.stackOn(this);
     }
 }
