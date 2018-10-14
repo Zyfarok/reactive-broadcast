@@ -6,7 +6,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
 import io.reactivex.subjects.PublishSubject;
 
-class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
+public class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
     private final Function<A,K> keyA;
     private final Function<B,K> keyB;
     private final RxLayer<A,B> innerLayer;
