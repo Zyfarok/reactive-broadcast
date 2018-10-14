@@ -2,10 +2,12 @@ package ch.epfl.daeasy;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
 import io.reactivex.Observable;
 
 import ch.epfl.daeasy.config.Configuration;
@@ -43,7 +45,7 @@ public class Main {
 		}
 	}
 
-	public static void main(String[] args) {
+	public static int main(String[] args) {
 		// da_proc n membership [extra params...]
 
 		// arguments validation
@@ -87,11 +89,13 @@ public class Main {
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 1).toDatagramPacket());
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 2).toDatagramPacket());
 		pktList.add(new Message(new InetSocketAddress("peer", 10000), 3).toDatagramPacket());
-		RxSocketLoopback<DatagramPacket> sock = new RxSocketLoopback<>(
-				Observable.fromIterable(pktList).delay(1, TimeUnit.SECONDS));
+		RxLoopbackSocket<DatagramPacket> sock = new RxLoopbackSocket<>();
 
-		sock.outputPipe.blockingSubscribe(machin -> System.out.println(machin));
-		return;
+		sock.inputPipe.blockingSubscribe(System.out::println);
+
+		Observable.fromIterable(pktList).delay(1, TimeUnit.SECONDS).subscribe(sock.outputPipe);
+
+		return 0;
 	}
 
 }
