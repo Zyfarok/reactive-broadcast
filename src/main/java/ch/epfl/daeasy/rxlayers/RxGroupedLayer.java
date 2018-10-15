@@ -22,14 +22,17 @@ public class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
     }
 
     public RxSocket<A> stackOn(RxSocket<B> subSocket) {
+        //System.out.println("Stacking " + this + " with " + innerLayer + " on " + subSocket);
         // #### Zero step : init stuff that will be needed for socket creation
         // Setup incoming input pipe
         Observable<GroupedObservable<K,B>> incomingGroupedInputPipes =
-                subSocket.inputPipe.groupBy(keyB);
+                subSocket.inputPipe.groupBy(keyB)
+                        .replay(10).autoConnect();
 
         // Setup incoming ouput pipe
         PublishSubject<A> incomingOutputPipe = PublishSubject.create();
-        Observable<GroupedObservable<K,A>> incomingGroupedOutputPipes = incomingOutputPipe.groupBy(keyA);
+        Observable<GroupedObservable<K,A>> incomingGroupedOutputPipes = incomingOutputPipe.groupBy(keyA)
+                .replay(10).autoConnect();
         //Observable<ConnectableObservable<A>> connectableOutputPipes = incomingGroupedOutputPipes.map(Observable::publish);
 
         // Create observable of keys to trigger socket creation.
@@ -37,6 +40,8 @@ public class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
                 .mergeWith(incomingGroupedOutputPipes.map(GroupedObservable::getKey)).distinct();
 
         Observable<RxSocket<A>> socketObservable = keyObservable.map(key -> {
+            //System.out.println("key: " + key + " called ! Creating inner socket...");
+
             // #### First step : Build groupedSubSocket
             // Setup input subject but we don't feed it yet
             PublishSubject<B> groupedSubSocketSubjectInput = PublishSubject.create();
@@ -48,11 +53,15 @@ public class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
             // #### Second step : Build groupedInnerSocket (apply innerLayer to groupedSubSocket)
             RxSocket<A> groupedInnerSocket = groupedSubSocket.stack(innerLayer);
 
+            /*
             // #### Third step : Lock the outgoing inputPipe of the innerSocket until subscribed using a last socket
             RxSocket<A> groupedUpperSocket = new RxSocket<>(
-                    groupedInnerSocket.inputPipe.publish().refCount(), // Keeps the values in the pipe until subscribed
+                    groupedInnerSocket.inputPipe.???,
                     groupedInnerSocket.outputPipe
             );
+            */
+            RxSocket<A> groupedUpperSocket = groupedInnerSocket;
+
             // #### Forth step : Connect the last socket to the incoming outputs
             incomingGroupedOutputPipes.filter(gco -> gco.getKey().equals(key))
                     .forEach(x -> x.subscribe(groupedUpperSocket.outputPipe));
