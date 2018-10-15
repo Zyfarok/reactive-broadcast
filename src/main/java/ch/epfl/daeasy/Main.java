@@ -14,12 +14,7 @@ import ch.epfl.daeasy.signals.StartSignalHandler;
 import ch.epfl.daeasy.signals.StopSignalHandler;
 import com.google.common.base.Converter;
 import io.reactivex.Observable;
-import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Predicate;
-import io.reactivex.observables.ConnectableObservable;
-import io.reactivex.observables.GroupedObservable;
-import io.reactivex.subjects.PublishSubject;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
@@ -100,22 +95,13 @@ public class Main {
                         new RxConverterLayer<>(Converter.from(x -> (x+100), x -> (x-100))))
         );
 
-		ConnectableObservable<Integer> o = sock.inputPipe.publish();
-        GroupedObservable<Integer,Integer> z = new GroupedObservable<Integer, Integer>(0) {
-            final PublishSubject<Integer> subject = PublishSubject.create();
-
-            @Override
-            protected void subscribeActual(Observer<? super Integer> observer) {
-                subject.subscribe(observer);
-            }
-        };
+		Observable<Integer> o = sock.inputPipe.publish().autoConnect();
 
         subSocket.outputPipe.onNext(0);
         subSocket.outputPipe.onNext(1);
         subSocket.outputPipe.onNext(2);
         subSocket.outputPipe.onNext(3);
 
-        o.connect();
         Disposable d1 = o.forEach(System.out::println);
 
         subSocket.outputPipe.onNext(4);
