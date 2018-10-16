@@ -18,11 +18,14 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
         this.innerLayer = innerLayer;
     }
 
-    public static <Key, Bottom, Top> RxGroupedLayer<Key, Bottom, Top> create(Function<Bottom, Key> keyB, Function<Top, Key> keyA, RxLayer<Bottom, Top> innerLayer) {
+    public static <Key, Bottom, Top> RxGroupedLayer<Key, Bottom, Top> create(Function<Bottom, Key> keyB,
+                                                                             Function<Top, Key> keyA,
+                                                                             RxLayer<Bottom, Top> innerLayer) {
         return new RxGroupedLayer<>(keyB,keyA,innerLayer);
     }
 
-    public static <Key, Bottom> RxGroupedLayer<Key, Bottom, Bottom> create(Function<Bottom, Key> key, RxLayer<Bottom, Bottom> innerLayer) {
+    public static <Key, Bottom> RxGroupedLayer<Key, Bottom, Bottom> create(Function<Bottom, Key> key,
+                                                                           RxLayer<Bottom, Bottom> innerLayer) {
         return create(key,key,innerLayer);
     }
 
