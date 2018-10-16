@@ -4,9 +4,9 @@ import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.logging.Logging;
 //import ch.epfl.daeasy.protocol.Message;
-import ch.epfl.daeasy.rxlayers.RxConverterLayer;
-import ch.epfl.daeasy.rxlayers.RxFilterLayer;
 import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
+import ch.epfl.daeasy.rxlayers.RxLayer;
+import ch.epfl.daeasy.rxlayers.RxNil;
 import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import ch.epfl.daeasy.rxsockets.RxUDPSocket;
@@ -15,13 +15,13 @@ import ch.epfl.daeasy.signals.StopSignalHandler;
 import com.google.common.base.Converter;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.PublishSubject;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 public class Main {
 
@@ -88,53 +88,47 @@ public class Main {
 
 		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 		*/
-		// udp.inputPipe.blockingSubscribe(stuff -> System.out.println(stuff));
         RxSocket<Integer> subSocket = new RxLoopbackSocket<>();
-		RxSocket<Integer> sock = subSocket.stack(
-		        RxGroupedLayer.create(x -> (x % 2),
-                        new RxConverterLayer<>(Converter.from(x -> (x+100), x -> (x-100))))
-        );
 
-		Observable<Integer> o = sock.inputPipe.publish().autoConnect();
+        RxLayer<Integer,Integer> innerLayer = new RxNil<Integer>()
+                .scheduleOn(Schedulers.trampoline())
+                .convertValues(Converter.from(x -> (x+100), x -> (x-100)))
+                /*.scheduleOn(Schedulers.trampoline())*/; // For some reason, this fucks-up the RxLayer type.
 
-        subSocket.outputPipe.onNext(0);
-        subSocket.outputPipe.onNext(1);
-        subSocket.outputPipe.onNext(2);
-        subSocket.outputPipe.onNext(3);
+        RxSocket<Integer> topSocket = subSocket
+                .scheduleOn(Schedulers.trampoline())
+                .stack(RxGroupedLayer.create(x -> x % 2, innerLayer))
+                .scheduleOn(Schedulers.trampoline());
 
-        Disposable d1 = o.forEach(System.out::println);
+        Observable<Integer> observableOut = topSocket.upPipe;
+        Disposable d1 = observableOut.forEach(System.out::println);
 
-        subSocket.outputPipe.onNext(4);
-        subSocket.outputPipe.onNext(5);
-        subSocket.outputPipe.onNext(6);
-        subSocket.outputPipe.onNext(7);
+        PublishSubject<Integer> subjectIn = topSocket.downPipe;
 
-        Disposable d2 = o.forEach(s -> System.out.println(s + "bis"));
+        subjectIn.onNext(0);
+        subjectIn.onNext(1);
+        subjectIn.onNext(2);
+        subjectIn.onNext(3);
 
-        subSocket.outputPipe.onNext(8);
-        subSocket.outputPipe.onNext(9);
-        subSocket.outputPipe.onNext(10);
-        subSocket.outputPipe.onNext(11);
+        Disposable d2 = observableOut.forEach(s -> System.out.println(s + "bis"));
+
+        subjectIn.onNext(4);
+        subjectIn.onNext(5);
+        subjectIn.onNext(6);
+        subjectIn.onNext(7);
 
         d1.dispose();
+
+        subjectIn.onNext(8);
+        subjectIn.onNext(9);
+        subjectIn.onNext(10);
+        subjectIn.onNext(11);
+
         d2.dispose();
 
-        subSocket.outputPipe.onNext(12);
-        subSocket.outputPipe.onNext(13);
-        subSocket.outputPipe.onNext(14);
-        subSocket.outputPipe.onNext(15);
+        System.out.println("Done pushing.");
 
-        Disposable d3 = o.forEach(s -> System.out.println(s + "ter"));
-
-		System.out.println("Done pushing.");
-
-
-        //PublishSubject<Integer> incomingOutputPipe = PublishSubject.create();
-        //Observable<GroupedObservable<K,A>> incomingGroupedOutputPipes = incomingOutputPipe.groupBy(key);
-
-		try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
-
-        d3.dispose();
-	}
+        try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
+    }
 
 }
