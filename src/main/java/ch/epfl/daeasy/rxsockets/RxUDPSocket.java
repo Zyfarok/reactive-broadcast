@@ -34,7 +34,7 @@ public class RxUDPSocket extends RxSocket<DatagramPacket> {
                     emitter.setCancellable(createCancellable(udpSocket, disposable));
                     while (true) {
                         try {
-                            byte[] rcvBuffer = new byte[1000000]; // TODO : Define the array size in an a better fashion.
+                            byte[] rcvBuffer = new byte[65536];
                             DatagramPacket datagramPacket = new DatagramPacket(rcvBuffer, rcvBuffer.length);
                             udpSocket.receive(datagramPacket);
                             emitter.onNext(datagramPacket);
