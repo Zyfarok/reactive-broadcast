@@ -8,7 +8,7 @@ import ch.epfl.daeasy.rxsockets.RxSocket;
  * @param <A> type of RxSocket that it builds.
  * @param <B> type of RxSocket that it stacks onto.
  */
-public abstract class RxLayer<A,B> {
+public abstract class RxLayer<A,B> implements RxStack<A> {
     public abstract RxSocket<A> stackOn(RxSocket<B> subSocket);
 
     public <C> RxLayer<A,C> stackOn(RxLayer<B,C> that) {
