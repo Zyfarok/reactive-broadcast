@@ -5,19 +5,19 @@ import io.reactivex.Observable;
 
 import javax.annotation.Nonnull;
 
-public class RxConverterLayer<A,B> extends RxPipeConverterLayer<A,B> {
-    public RxConverterLayer(Converter<B,A> bottomUpConverter) {
-        super(new Converter<Observable<B>,Observable<A>>() {
-            final Converter<A,B> topDownConverter = bottomUpConverter.reverse();
+public class RxConverterLayer<Bottom, Top> extends RxPipeConverterLayer<Bottom, Top> {
+    public RxConverterLayer(Converter<Bottom, Top> upwardConverter) {
+        super(new Converter<Observable<Bottom>,Observable<Top>>() {
+            final Converter<Top, Bottom> downwardConverter = upwardConverter.reverse();
 
             @Override
-            protected Observable<A> doForward(@Nonnull Observable<B> o) {
-                return o.map(bottomUpConverter::convert);
+            protected Observable<Top> doForward(@Nonnull Observable<Bottom> o) {
+                return o.map(upwardConverter::convert);
             }
 
             @Override
-            protected Observable<B> doBackward(@Nonnull Observable<A> o) {
-                return o.map(topDownConverter::convert);
+            protected Observable<Bottom> doBackward(@Nonnull Observable<Top> o) {
+                return o.map(downwardConverter::convert);
             }
         });
     }

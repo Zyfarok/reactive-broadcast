@@ -12,26 +12,31 @@ import java.net.DatagramSocket;
 
 public class RxUDPSocket extends RxSocket<DatagramPacket> {
     public RxUDPSocket(DatagramSocket udpSocket) {
-        this(udpSocket, createUDPOuputSubject(udpSocket));
+        this(udpSocket, PublishSubject.create());
     }
 
-    private RxUDPSocket(DatagramSocket udpSocket, SubjectAndItsDisposable said) {
-        super(createUDPInputObserver(udpSocket, said.disposable), said.subject);
+    private RxUDPSocket(DatagramSocket udpSocket, PublishSubject<DatagramPacket> udpSender) {
+        super(
+                createUDPReceiver(
+                        udpSocket,
+                        udpSender.observeOn(Schedulers.trampoline())
+                                .forEach(udpSocket::send)
+        ), udpSender);
     }
 
-    private static Cancellable createCancellable(DatagramSocket udpSocket, Disposable disposable) {
+    private static Cancellable createCancellable(DatagramSocket udpSocket, Disposable sendersDisposable) {
         return () -> {
-            disposable.dispose();
+            sendersDisposable.dispose();
             if (!udpSocket.isClosed()) {
                 udpSocket.close();
             }
         };
     }
 
-    private static Observable<DatagramPacket> createUDPInputObserver(DatagramSocket udpSocket, Disposable disposable) {
+    private static Observable<DatagramPacket> createUDPReceiver(DatagramSocket udpSocket, Disposable sendersDisposable) {
         return Observable.create(
                 (ObservableOnSubscribe<DatagramPacket>) emitter -> {
-                    emitter.setCancellable(createCancellable(udpSocket, disposable));
+                    emitter.setCancellable(createCancellable(udpSocket, sendersDisposable));
                     while (true) {
                         try {
                             byte[] rcvBuffer = new byte[65536];
@@ -44,20 +49,5 @@ public class RxUDPSocket extends RxSocket<DatagramPacket> {
                     }
                 }
         ).subscribeOn(Schedulers.io());
-    }
-
-    private static SubjectAndItsDisposable createUDPOuputSubject(DatagramSocket udpSocket) {
-        PublishSubject<DatagramPacket> subject = PublishSubject.create();
-        return new SubjectAndItsDisposable(subject, subject.forEach(udpSocket::send));
-    }
-
-    private static class SubjectAndItsDisposable {
-        final PublishSubject<DatagramPacket> subject;
-        final Disposable disposable;
-
-        private SubjectAndItsDisposable(PublishSubject<DatagramPacket> subject, Disposable disposable) {
-            this.subject = subject;
-            this.disposable = disposable;
-        }
     }
 }

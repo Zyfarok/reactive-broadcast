@@ -8,38 +8,43 @@ import javax.annotation.Nullable;
 import java.util.Optional;
 
 public class RxSchedulerLayer<A> extends RxLayer<A,A> {
-    private final Scheduler inputScheduler;
-    private final Scheduler outputScheduler;
-    public RxSchedulerLayer(@Nullable Scheduler inputScheduler, @Nullable Scheduler outputScheduler) {
-        this.inputScheduler = inputScheduler;
-        this.outputScheduler = outputScheduler;
+    private final Scheduler upScheduler;
+    private final Scheduler downScheduler;
+
+    private RxSchedulerLayer(@Nullable Scheduler upScheduler, @Nullable Scheduler downScheduler) {
+        this.upScheduler = upScheduler;
+        this.downScheduler = downScheduler;
     }
 
-    public static <A> RxSchedulerLayer<A> scheduleInputOn(Scheduler s) {
+    public static <A> RxSchedulerLayer<A> bidirectionalScheduler(Scheduler upScheduler, Scheduler downScheduler) {
+        return new RxSchedulerLayer<>(upScheduler,downScheduler);
+    }
+
+    public static <A> RxSchedulerLayer<A> bidirectionalScheduler(Scheduler s) {
+        return new RxSchedulerLayer<>(s,s);
+    }
+
+    public static <A> RxSchedulerLayer<A> upScheduler(Scheduler s) {
         return new RxSchedulerLayer<>(s,null);
     }
 
-    public static <A> RxSchedulerLayer<A> scheduleOuputOn(Scheduler s) {
+    public static <A> RxSchedulerLayer<A> downScheduler(Scheduler s) {
         return new RxSchedulerLayer<>(null,s);
-    }
-
-    public static <A> RxSchedulerLayer<A> scheduleOn(Scheduler s) {
-        return new RxSchedulerLayer<>(s,s);
     }
 
     @Override
     public RxSocket<A> stackOn(RxSocket<A> subSocket) {
-        PublishSubject<A> newOutputPipe = Optional.ofNullable(outputScheduler).map(scheduler -> {
+        PublishSubject<A> downPipe = Optional.ofNullable(downScheduler).map(scheduler -> {
             PublishSubject<A> subject = PublishSubject.create();
-            subject.observeOn(scheduler).subscribe(subSocket.outputPipe);
+            subject.observeOn(scheduler).subscribe(subSocket.downPipe);
             return subject;
         }).orElse(
-                subSocket.outputPipe
+                subSocket.downPipe
         );
-        return Optional.ofNullable(inputScheduler).map(scheduler ->
-                new RxSocket<>(subSocket.inputPipe.observeOn(scheduler), newOutputPipe)
+        return Optional.ofNullable(upScheduler).map(scheduler ->
+                new RxSocket<>(subSocket.upPipe.observeOn(scheduler), downPipe)
         ).orElse(
-                new RxSocket<>(subSocket.inputPipe, newOutputPipe)
+                new RxSocket<>(subSocket.upPipe, downPipe)
         );
     }
 }
