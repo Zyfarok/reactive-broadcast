@@ -51,7 +51,8 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
 
         // TODO : Avoid potential OutOfMemory errors by handling disposables and avoiding "distinct" usage.
         // Create an inner socket for each key
-        Observable<Disposable> disposables = keyObservable.map(key -> {
+        //Observable<Disposable> disposables = keyObservable.map(key -> {
+        keyObservable.forEach(key -> {
             //System.out.println("key: " + key + " found ! Creating inner socket...");
 
             // #### First step : Build inner subSocket
@@ -77,7 +78,8 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
             Disposable d2 = groupedBottomUpPipesIn.filter(x -> x.getKey().equals(key)).take(1)
                     .forEach(x -> x.subscribe(innerBottomUpPipeIn));
 
-            return new Disposable() {
+            //return new Disposable() {
+            new Disposable() {
                 @Override
                 public void dispose() {
                     d1.dispose();
