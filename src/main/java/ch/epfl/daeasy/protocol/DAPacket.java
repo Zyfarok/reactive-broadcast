@@ -9,7 +9,7 @@ import java.net.DatagramPacket;
 /*
  * A DAPacket is a application-level payload with a correspondent.
  */
-public abstract class DAPacket {
+public class DAPacket {
     protected final long payload;
     protected final InetSocketAddress peer;
 
@@ -24,39 +24,11 @@ public abstract class DAPacket {
         this.payload = buffer.getLong();
     }
 
-    abstract public boolean isACK();
-
-    abstract public boolean isMessage();
-
-    /*
-     * Build a DatagramPacket corresponding to the DAPacket.
-     */
-    public final DatagramPacket toDatagramPacket() {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(this.payload);
-        byte[] bs = buffer.array();
-        return new DatagramPacket(bs, bs.length);
+    public boolean isACK() {
+        return this.payload < 0;
     }
 
-    /*
-     * Build a DAPacket from an inbound packet.
-     */
-    public static DAPacket buildDAPacket(InetSocketAddress peer, byte[] payload) throws IllegalArgumentException {
-        if (payload.length != Long.BYTES) {
-            throw new IllegalArgumentException("cannot parse inbound packet: incorrect length");
-        }
-        ByteBuffer buffer = ByteBuffer.allocate(payload.length);
-        buffer.put(payload);
-        buffer.flip();
-        long id = buffer.getLong();
-        System.out.println("ID : " + id);
-
-        if (id > 0) {
-            return new Message(peer, payload);
-        } else if (id < 0) {
-            return new Acknowledgement(peer, payload);
-        } else {
-            throw new IllegalArgumentException("id of DAPacket cannot be 0");
-        }
+    public boolean isMessage() {
+        return this.payload > 0;
     }
 }
