@@ -3,7 +3,7 @@ package ch.epfl.daeasy;
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.logging.Logging;
-import ch.epfl.daeasy.protocol.Message;
+//import ch.epfl.daeasy.protocol.Message;
 import ch.epfl.daeasy.rxlayers.RxConverterLayer;
 import ch.epfl.daeasy.rxlayers.RxFilterLayer;
 import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
