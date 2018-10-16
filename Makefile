@@ -7,3 +7,6 @@ clean:
 	./gradlew clean
 
 build: all
+
+run: all
+	./da_project
