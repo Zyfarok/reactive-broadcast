@@ -61,11 +61,11 @@ public class RxGroupedLayer<K, A, B> extends RxLayer<A,B> {
             innerSocket.inputPipe.subscribe(outgoingInputPipe);
 
             // #### Fifth step : Plug the innerSocket incoming output pipe.
-            incomingGroupedOutputPipes.filter(gco -> gco.getKey().equals(key))
+            incomingGroupedOutputPipes.filter(gco -> gco.getKey().equals(key)).take(1)
                     .forEach(x -> x.subscribe(innerSocket.outputPipe));
 
             // #### Sixth step : Plug the innerSubSocket incoming input pipe.
-            incomingGroupedInputPipes.filter(x -> x.getKey().equals(key))
+            incomingGroupedInputPipes.filter(x -> x.getKey().equals(key)).take(1)
                     .forEach(x -> x.subscribe(groupedSubSocketSubjectInput));
         });
 
