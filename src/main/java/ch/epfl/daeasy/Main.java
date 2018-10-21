@@ -2,6 +2,7 @@ package ch.epfl.daeasy;
 
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Converter;
 
@@ -87,43 +88,34 @@ public class Main {
 		StopSignalHandler.install("TERM", threads);
 		StartSignalHandler.install("USR2");
 
-		// RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
+		InetSocketAddress extPeer = new InetSocketAddress("10.0.0.2", 9999);
+		InetSocketAddress intPeer = new InetSocketAddress("10.0.0.1", 1000);
 
-		RxSocket<DAPacket> subSocket = new RxLoopbackSocket<>();
+		DAPacket[] packetsInt = { new DAPacket(intPeer, 1) };
+
+		DAPacket[] packetsExt = { new DAPacket(extPeer, -1) };
+
+		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
+		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS);
+
+		// feed the subsocket with my ACK for message 1
+		RxSocket<DAPacket> subSocket = new RxSocket<DAPacket>(packetsFromExt);
 
 		RxLayer<DAPacket, DAPacket> innerLayer = new PerfectLinkLayer();
 
 		RxSocket<DAPacket> topSocket = subSocket.scheduleOn(Schedulers.trampoline())
 				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
 
-		Observable<DAPacket> observableOut = topSocket.upPipe;
-		Disposable d1 = observableOut.forEach(System.out::println);
+		// feed the topsocket with my Message 1
+		packetsFromInt.subscribe(topSocket.downPipe);
 
-		PublishSubject<DAPacket> subjectIn = topSocket.downPipe;
-
-		InetSocketAddress peer = new InetSocketAddress("127.0.0.1", 9999);
-		subjectIn.onNext(new DAPacket(peer, 1));
-		subjectIn.onNext(new DAPacket(peer, 2));
-		subjectIn.onNext(new DAPacket(peer, 3));
-
-		// Disposable d2 = observableOut.forEach(s -> System.out.println(s + "bis"));
-
-		subjectIn.onNext(new DAPacket(peer, 4));
-		subjectIn.onNext(new DAPacket(peer, 5));
-		subjectIn.onNext(new DAPacket(peer, 6));
-
-		d1.dispose();
-
-		subjectIn.onNext(new DAPacket(peer, 7));
-		subjectIn.onNext(new DAPacket(peer, 8));
-		subjectIn.onNext(new DAPacket(peer, 9));
-
-		// d2.dispose();
+		// print packets out of the system
+		subSocket.downPipe.blockingSubscribe(truc -> System.out.println("OUT: " + truc.toString()));
 
 		System.out.println("Done pushing.");
 
 		try {
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		} catch (InterruptedException ignored) {
 		}
 	}

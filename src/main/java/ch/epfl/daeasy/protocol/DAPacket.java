@@ -36,6 +36,13 @@ public class DAPacket {
         return new DAPacket(msg.peer, -msg.msg_cont.payload);
     }
 
+    /*
+     * Get ID of DAPacket
+     */
+    public long getID() {
+        return this.msg_cont.payload;
+    }
+
     public boolean isACK() {
         // return this.payload < 0;
         return msg_cont.payload < 0;

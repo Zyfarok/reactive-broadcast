@@ -1,6 +1,7 @@
 package ch.epfl.daeasy.layers;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import com.google.common.base.Functions;
@@ -31,18 +32,62 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
 
         Subject<DAPacket> subject = PublishSubject.create();
 
-        Observable<GroupedObservable<Boolean, DAPacket>> dapacketsExt = subSocket.upPipe.groupBy(DAPacket::isMessage);
+        RxSocket<DAPacket> socket = new RxSocket<>(subject);
 
-        // Filter Messages
-        Observable<DAPacket> messagesExt = dapacketsExt.filter(gpkt -> gpkt.getKey()).flatMap(x -> x);
+        Subject<DAPacket> intUp = subject;
+        Observable<DAPacket> intDown = socket.downPipe;
+        Observable<DAPacket> extIn = subSocket.upPipe;
+        Subject<DAPacket> extOut = subSocket.downPipe;
+
+        intDown.subscribe(p -> System.out.println("Layer IntDown: " + p.toString()));
+        extIn.subscribe(p -> System.out.println("Layer ExtIn: " + p.toString()));
+
+        // Observable<GroupedObservable<Boolean, DAPacket>> dapacketsExt = ;
+
+        // Exterior Messages
+        Observable<DAPacket> messagesExt = extIn.filter(DAPacket::isMessage);
+        // Exterior ACKs
+        Observable<DAPacket> acksExt = extIn.filter(DAPacket::isACK);
+
+        // Interior Messages
+        Observable<DAPacket> messagesIn = intDown;
+        // No Interior ACKs
+
+        // Transform ack messages to simple long stream
+        Observable<Long> acks = acksExt.distinct().map(ack -> -ack.getID());
 
         // ACK all received messages
         Observable<DAPacket> acksFromMessages = messagesExt.map(msg -> DAPacket.AckFromMessage(msg));
 
-        // Send
-        acksFromMessages.subscribe(subSocket.downPipe);
+        // Make ACKs stop the repeat sending of Messages
+        Observable<GroupedObservable<Long, DAPacket>> groupedMessagesIn = messagesIn.distinct()
+                .groupBy(DAPacket::getID);
 
-        RxSocket<DAPacket> socket = new RxSocket<>(messagesExt.distinct());
+        // Observable<DAPacket> truc = groupedMessagesIn.map(
+        // gMsgs -> (Observable<DAPacket>) gMsgs.repeat(100).takeUntil(acks.filter(ack
+        // -> ack == gMsgs.getKey())))
+        // .flatMap(x -> x);
+
+        Observable<DAPacket> truc = groupedMessagesIn.map(
+                gMsgs -> gMsgs.publish(obs -> obs.repeat(100).takeUntil(acks.filter(ack -> ack == gMsgs.getKey()))))
+                .flatMap(x -> x);
+
+        // Observable<Object> truc = groupedMessagesIn.map(grp -> grp.subscribe()).map(p
+        // -> p.repeat(100));
+
+        // .publish((Observable<DAPacket>) grp.repeat(100).takeUntil(acks.filter(ack ->
+        // ack == grp.getKey()))));
+
+        truc.subscribe(p -> System.out.println("Layer truc: " + p.toString()));
+
+        // machin.subscribe(System.out::println);
+
+        // Send to Ext
+        acksFromMessages.subscribe(extOut); // acks
+        // machin.subscribe(extOut); // and messages to retransmit
+
+        // Send to Int
+        messagesExt.distinct().subscribe(intUp);
 
         return socket;
     }
