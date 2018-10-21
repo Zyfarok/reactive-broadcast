@@ -30,21 +30,19 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
 
         Subject<DAPacket> subject = PublishSubject.create();
-        RxSocket<DAPacket> socket = new RxSocket<>(subSocket.upPipe);
 
-        Observable<GroupedObservable<Boolean, DAPacket>> dapacketsExt = subSocket.upPipe.publish()
-                .groupBy(DAPacket::isMessage);
+        Observable<GroupedObservable<Boolean, DAPacket>> dapacketsExt = subSocket.upPipe.groupBy(DAPacket::isMessage);
 
-        // split by Message/ACK
-        Observable<DAPacket> acksExt = dapacketsExt.filter(gpkt -> !gpkt.getKey()).flatMap(x -> x).publish();
-        Observable<DAPacket> messagesExt = dapacketsExt.filter(gpkt -> gpkt.getKey()).flatMap(x -> x).publish();
+        // Filter Messages
+        Observable<DAPacket> messagesExt = dapacketsExt.filter(gpkt -> gpkt.getKey()).flatMap(x -> x);
 
         // ACK all received messages
         Observable<DAPacket> acksFromMessages = messagesExt.map(msg -> DAPacket.AckFromMessage(msg));
+
+        // Send
         acksFromMessages.subscribe(subSocket.downPipe);
 
-        // messagesExt.distinct();
-        // acksExt.distinct();
+        RxSocket<DAPacket> socket = new RxSocket<>(messagesExt.distinct());
 
         return socket;
     }

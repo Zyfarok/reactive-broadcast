@@ -101,7 +101,7 @@ public class Main {
 
 		PublishSubject<DAPacket> subjectIn = topSocket.downPipe;
 
-		InetSocketAddress peer = new InetSocketAddress("localhost", 9999);
+		InetSocketAddress peer = new InetSocketAddress("127.0.0.1", 9999);
 		subjectIn.onNext(new DAPacket(peer, 1));
 		subjectIn.onNext(new DAPacket(peer, 2));
 		subjectIn.onNext(new DAPacket(peer, 3));
