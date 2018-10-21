@@ -34,12 +34,12 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
 
         RxSocket<DAPacket> socket = new RxSocket<>(subject);
 
-        Subject<DAPacket> intUp = subject;
-        Observable<DAPacket> intDown = socket.downPipe;
+        Subject<DAPacket> intOut = subject;
+        Observable<DAPacket> intIn = socket.downPipe;
         Observable<DAPacket> extIn = subSocket.upPipe;
         Subject<DAPacket> extOut = subSocket.downPipe;
 
-        intDown.subscribe(p -> System.out.println("Layer IntDown: " + p.toString()));
+        intIn.subscribe(p -> System.out.println("Layer IntDown: " + p.toString()));
         extIn.subscribe(p -> System.out.println("Layer ExtIn: " + p.toString()));
 
         // Observable<GroupedObservable<Boolean, DAPacket>> dapacketsExt = ;
@@ -50,7 +50,7 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
         Observable<DAPacket> acksExt = extIn.filter(DAPacket::isACK);
 
         // Interior Messages
-        Observable<DAPacket> messagesIn = intDown;
+        Observable<DAPacket> messagesIn = intIn;
         // No Interior ACKs
 
         // Transform ack messages to simple long stream
@@ -87,7 +87,7 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
         // machin.subscribe(extOut); // and messages to retransmit
 
         // Send to Int
-        messagesExt.distinct().subscribe(intUp);
+        messagesExt.distinct().subscribe(intOut);
 
         return socket;
     }
