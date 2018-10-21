@@ -1,27 +1,28 @@
 package ch.epfl.daeasy;
 
+import java.net.Inet4Address;
+import java.net.InetSocketAddress;
+
+import com.google.common.base.Converter;
+
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
+import ch.epfl.daeasy.layers.PerfectLinkLayer;
 import ch.epfl.daeasy.logging.Logging;
+import ch.epfl.daeasy.protocol.DAPacket;
 //import ch.epfl.daeasy.protocol.Message;
 import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxlayers.RxNil;
 import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
 import ch.epfl.daeasy.rxsockets.RxSocket;
-import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import ch.epfl.daeasy.signals.StartSignalHandler;
 import ch.epfl.daeasy.signals.StopSignalHandler;
-import com.google.common.base.Converter;
+import ch.epfl.daeasy.protocol.DAPacket;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
-
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Main {
 
@@ -49,7 +50,7 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-		/*
+
 		// da_proc n membership [extra params...]
 
 		// arguments validation
@@ -86,49 +87,45 @@ public class Main {
 		StopSignalHandler.install("TERM", threads);
 		StartSignalHandler.install("USR2");
 
-		RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
-		*/
-        RxSocket<Integer> subSocket = new RxLoopbackSocket<>();
+		// RxUDPSocket udp = new RxUDPSocket(cfg.udpSocket);
 
-        RxLayer<Integer,Integer> innerLayer = new RxNil<Integer>()
-                .scheduleOn(Schedulers.trampoline())
-                .convertValues(Converter.from(x -> (x+100), x -> (x-100)))
-                /*.scheduleOn(Schedulers.trampoline())*/; // For some reason, this fucks-up the RxLayer type.
+		RxSocket<DAPacket> subSocket = new RxLoopbackSocket<>();
 
-        RxSocket<Integer> topSocket = subSocket
-                .scheduleOn(Schedulers.trampoline())
-                .stack(RxGroupedLayer.create(x -> x % 2, innerLayer))
-                .scheduleOn(Schedulers.trampoline());
+		RxLayer<DAPacket, DAPacket> innerLayer = new PerfectLinkLayer();
 
-        Observable<Integer> observableOut = topSocket.upPipe;
-        Disposable d1 = observableOut.forEach(System.out::println);
+		RxSocket<DAPacket> topSocket = subSocket.scheduleOn(Schedulers.trampoline())
+				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
 
-        PublishSubject<Integer> subjectIn = topSocket.downPipe;
+		Observable<DAPacket> observableOut = topSocket.upPipe;
+		Disposable d1 = observableOut.forEach(System.out::println);
 
-        subjectIn.onNext(0);
-        subjectIn.onNext(1);
-        subjectIn.onNext(2);
-        subjectIn.onNext(3);
+		PublishSubject<DAPacket> subjectIn = topSocket.downPipe;
 
-        Disposable d2 = observableOut.forEach(s -> System.out.println(s + "bis"));
+		InetSocketAddress peer = new InetSocketAddress("localhost", 9999);
+		subjectIn.onNext(new DAPacket(peer, 1));
+		subjectIn.onNext(new DAPacket(peer, 2));
+		subjectIn.onNext(new DAPacket(peer, 3));
 
-        subjectIn.onNext(4);
-        subjectIn.onNext(5);
-        subjectIn.onNext(6);
-        subjectIn.onNext(7);
+		// Disposable d2 = observableOut.forEach(s -> System.out.println(s + "bis"));
 
-        d1.dispose();
+		subjectIn.onNext(new DAPacket(peer, 4));
+		subjectIn.onNext(new DAPacket(peer, 5));
+		subjectIn.onNext(new DAPacket(peer, 6));
 
-        subjectIn.onNext(8);
-        subjectIn.onNext(9);
-        subjectIn.onNext(10);
-        subjectIn.onNext(11);
+		d1.dispose();
 
-        d2.dispose();
+		subjectIn.onNext(new DAPacket(peer, 7));
+		subjectIn.onNext(new DAPacket(peer, 8));
+		subjectIn.onNext(new DAPacket(peer, 9));
 
-        System.out.println("Done pushing.");
+		// d2.dispose();
 
-        try {Thread.sleep(1000);} catch (InterruptedException ignored) {}
-    }
+		System.out.println("Done pushing.");
+
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException ignored) {
+		}
+	}
 
 }
