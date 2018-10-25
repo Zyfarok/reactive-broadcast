@@ -1,10 +1,7 @@
 package ch.epfl.daeasy;
 
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Converter;
 
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
@@ -14,16 +11,11 @@ import ch.epfl.daeasy.protocol.DAPacket;
 //import ch.epfl.daeasy.protocol.Message;
 import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
-import ch.epfl.daeasy.rxlayers.RxNil;
-import ch.epfl.daeasy.rxsockets.RxLoopbackSocket;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import ch.epfl.daeasy.signals.StartSignalHandler;
 import ch.epfl.daeasy.signals.StopSignalHandler;
-import ch.epfl.daeasy.protocol.DAPacket;
 import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import io.reactivex.subjects.PublishSubject;
 
 public class Main {
 
@@ -93,7 +85,7 @@ public class Main {
 
 		DAPacket[] packetsInt = { new DAPacket(intPeer, 1) };
 
-		DAPacket[] packetsExt = { new DAPacket(extPeer, -1) };
+		DAPacket[] packetsExt = { new DAPacket(extPeer, -1), new DAPacket(extPeer, 2) };
 
 		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
 		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS);
@@ -107,10 +99,15 @@ public class Main {
 				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
 
 		// feed the topsocket with my Message 1
-		packetsFromInt.subscribe(topSocket.downPipe);
+        packetsFromInt.subscribe(topSocket.downPipe);
+
+
+        topSocket.downPipe.subscribe(pkt -> System.out.println("INT IN: " + pkt.toString()));
+        topSocket.upPipe.subscribe(pkt -> System.out.println("INT OUT: " + pkt.toString()));
+        subSocket.upPipe.subscribe(pkt -> System.out.println("EXT IN: " + pkt.toString()));
 
 		// print packets out of the system
-		subSocket.downPipe.blockingSubscribe(truc -> System.out.println("OUT: " + truc.toString()));
+		subSocket.downPipe.blockingSubscribe(pkt -> System.out.println("EXT OUT: " + pkt.toString()));
 
 		System.out.println("Done pushing.");
 
