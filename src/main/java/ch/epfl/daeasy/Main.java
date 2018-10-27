@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
+import ch.epfl.daeasy.layers.BestEffortBroadcastLayer;
 import ch.epfl.daeasy.layers.PerfectLinkLayer;
 import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.DAPacket;
@@ -80,11 +81,12 @@ public class Main {
 		StopSignalHandler.install("TERM", threads);
 		StartSignalHandler.install("USR2");
 
+		// testing
+
 		InetSocketAddress extPeer = new InetSocketAddress("10.0.0.2", 9999);
 		InetSocketAddress intPeer = new InetSocketAddress("10.0.0.1", 1000);
 
 		DAPacket[] packetsInt = { new DAPacket(intPeer, 1) };
-
 		DAPacket[] packetsExt = { new DAPacket(extPeer, -1), new DAPacket(extPeer, 2) };
 
 		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
@@ -95,16 +97,17 @@ public class Main {
 
 		RxLayer<DAPacket, DAPacket> innerLayer = new PerfectLinkLayer();
 
-		RxSocket<DAPacket> topSocket = subSocket.scheduleOn(Schedulers.trampoline())
+		RxSocket<DAPacket> middleSocket = subSocket.scheduleOn(Schedulers.trampoline())
 				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
 
+		RxSocket<DAPacket> topSocket = middleSocket.stack(new BestEffortBroadcastLayer(cfg));
+
 		// feed the topsocket with my Message 1
-        packetsFromInt.subscribe(topSocket.downPipe);
+		packetsFromInt.subscribe(topSocket.downPipe);
 
-
-        topSocket.downPipe.subscribe(pkt -> System.out.println("INT IN: " + pkt.toString()));
-        topSocket.upPipe.subscribe(pkt -> System.out.println("INT OUT: " + pkt.toString()));
-        subSocket.upPipe.subscribe(pkt -> System.out.println("EXT IN: " + pkt.toString()));
+		topSocket.downPipe.subscribe(pkt -> System.out.println("INT IN: " + pkt.toString()));
+		topSocket.upPipe.subscribe(pkt -> System.out.println("INT OUT: " + pkt.toString()));
+		subSocket.upPipe.subscribe(pkt -> System.out.println("EXT IN: " + pkt.toString()));
 
 		// print packets out of the system
 		subSocket.downPipe.blockingSubscribe(pkt -> System.out.println("EXT OUT: " + pkt.toString()));
