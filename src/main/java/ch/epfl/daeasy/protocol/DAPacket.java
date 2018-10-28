@@ -11,6 +11,8 @@ public class DAPacket {
     protected MessageContent content;
 
     // correspondant peer
+    // if this peer is sending the DAPacket, peer is the destination
+    // if this peer is receiving the DAPacket, peer is the sender
     protected final InetSocketAddress peer;
 
     public DAPacket(InetSocketAddress peer, MessageContent content) {

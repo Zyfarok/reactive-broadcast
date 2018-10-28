@@ -1,6 +1,7 @@
 package ch.epfl.daeasy.layers;
 
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -14,10 +15,10 @@ import io.reactivex.subjects.Subject;
 
 public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
 
-    // contains every message ID previously acked
-    private Set<Long> acked = new HashSet<>();
-
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
+
+        // contains every message ID previously acked
+        Set<Long> acked = new HashSet<>();
 
         Subject<DAPacket> subject = PublishSubject.create();
 

@@ -83,14 +83,13 @@ public class Main {
 
 		// testing
 
-		InetSocketAddress extPeer = new InetSocketAddress("10.0.0.2", 9999);
-		InetSocketAddress extPeer2 = new InetSocketAddress("10.0.0.3", 9999);
+		InetSocketAddress extPeer = new InetSocketAddress("10.0.0.2", 2222);
+		InetSocketAddress extPeer2 = new InetSocketAddress("10.0.0.3", 3333);
 		InetSocketAddress intPeer = new InetSocketAddress("10.0.0.1", 1000);
 
 		DAPacket[] packetsInt = { new DAPacket(extPeer, MessageContent.Message(1, 1)),
 				new DAPacket(extPeer2, MessageContent.Message(1, 1)) };
-		DAPacket[] packetsExt = { new DAPacket(extPeer, MessageContent.ACK(1, 1)),
-				new DAPacket(extPeer, MessageContent.Message(1, 2)) };
+		DAPacket[] packetsExt = { new DAPacket(extPeer, MessageContent.ACK(1, 1)) };
 
 		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
 		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS).repeat(100);
@@ -101,7 +100,8 @@ public class Main {
 		RxLayer<DAPacket, DAPacket> innerLayer = new PerfectLinkLayer();
 
 		RxSocket<DAPacket> middleSocket = subSocket.scheduleOn(Schedulers.trampoline())
-				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
+				.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), innerLayer))
+				.scheduleOn(Schedulers.trampoline());
 
 		// RxSocket<DAPacket> topSocket = middleSocket.stack(new
 		// BestEffortBroadcastLayer(cfg));
