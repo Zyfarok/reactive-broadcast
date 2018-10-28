@@ -9,7 +9,7 @@ import ch.epfl.daeasy.layers.BestEffortBroadcastLayer;
 import ch.epfl.daeasy.layers.PerfectLinkLayer;
 import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.DAPacket;
-//import ch.epfl.daeasy.protocol.Message;
+import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
@@ -66,7 +66,7 @@ public class Main {
 
 		Logging.debug(cfg.toString());
 
-		Process p = cfg.processes.get(n);
+		Process p = cfg.processesByPID.get(n);
 
 		if (p == null) {
 			System.out.println("could not read process " + n + " in configuration file: " + cfg.toString());
@@ -84,13 +84,16 @@ public class Main {
 		// testing
 
 		InetSocketAddress extPeer = new InetSocketAddress("10.0.0.2", 9999);
+		InetSocketAddress extPeer2 = new InetSocketAddress("10.0.0.3", 9999);
 		InetSocketAddress intPeer = new InetSocketAddress("10.0.0.1", 1000);
 
-		DAPacket[] packetsInt = { new DAPacket(intPeer, 1) };
-		DAPacket[] packetsExt = { new DAPacket(extPeer, -1), new DAPacket(extPeer, 2) };
+		DAPacket[] packetsInt = { new DAPacket(extPeer, MessageContent.Message(1, 1)),
+				new DAPacket(extPeer2, MessageContent.Message(1, 1)) };
+		DAPacket[] packetsExt = { new DAPacket(extPeer, MessageContent.ACK(1, 1)),
+				new DAPacket(extPeer, MessageContent.Message(1, 2)) };
 
 		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
-		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS);
+		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS).repeat(100);
 
 		// feed the subsocket with my ACK for message 1
 		RxSocket<DAPacket> subSocket = new RxSocket<DAPacket>(packetsFromExt);
@@ -100,19 +103,19 @@ public class Main {
 		RxSocket<DAPacket> middleSocket = subSocket.scheduleOn(Schedulers.trampoline())
 				.stack(RxGroupedLayer.create(x -> x, innerLayer)).scheduleOn(Schedulers.trampoline());
 
-		RxSocket<DAPacket> topSocket = middleSocket.stack(new BestEffortBroadcastLayer(cfg));
+		// RxSocket<DAPacket> topSocket = middleSocket.stack(new
+		// BestEffortBroadcastLayer(cfg));
+		RxSocket<DAPacket> topSocket = middleSocket;
 
 		// feed the topsocket with my Message 1
 		packetsFromInt.subscribe(topSocket.downPipe);
 
-		topSocket.downPipe.subscribe(pkt -> System.out.println("INT IN: " + pkt.toString()));
-		topSocket.upPipe.subscribe(pkt -> System.out.println("INT OUT: " + pkt.toString()));
-		subSocket.upPipe.subscribe(pkt -> System.out.println("EXT IN: " + pkt.toString()));
+		subSocket.upPipe.subscribe(pkt -> Logging.debug("EXT IN: " + pkt.toString()));
+		topSocket.downPipe.subscribe(pkt -> Logging.debug("INT IN: " + pkt.toString()));
+		topSocket.upPipe.subscribe(pkt -> Logging.debug("INT OUT: " + pkt.toString()));
+		subSocket.downPipe.blockingSubscribe(pkt -> Logging.debug("EXT OUT: " + pkt.toString()));
 
-		// print packets out of the system
-		subSocket.downPipe.blockingSubscribe(pkt -> System.out.println("EXT OUT: " + pkt.toString()));
-
-		System.out.println("Done pushing.");
+		Logging.debug("Done pushing.");
 
 		try {
 			Thread.sleep(2000);

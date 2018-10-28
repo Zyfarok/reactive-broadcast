@@ -13,7 +13,8 @@ import java.util.Map;
 import javax.naming.ConfigurationException;
 
 public class Configuration {
-	public final Map<Integer, Process> processes;
+	public final Map<Integer, Process> processesByPID;
+	public final Map<String, Process> processesByAddress;
 	public final Integer id;
 	public final DatagramSocket udpSocket;
 
@@ -24,7 +25,8 @@ public class Configuration {
 			throws FileNotFoundException, IOException, ConfigurationException {
 		this.id = id;
 
-		Map<Integer, Process> tempProcesses = new HashMap<Integer, Process>();
+		Map<Integer, Process> tempProcessesById = new HashMap<Integer, Process>();
+		Map<String, Process> tempProcessesByAddress = new HashMap<String, Process>();
 		BufferedReader reader = new BufferedReader(new FileReader(filepath));
 
 		// read first line
@@ -44,23 +46,26 @@ public class Configuration {
 				int num = Integer.parseInt(sps[0]);
 				int port = Integer.parseInt(sps[2]);
 
-				tempProcesses.put(i, new Process(num, new InetSocketAddress(sps[1], port)));
+				InetSocketAddress addr = new InetSocketAddress(sps[1], port);
+				tempProcessesById.put(i, new Process(num, addr));
+				tempProcessesByAddress.put(addr.toString(), new Process(num, addr));
 			}
 		} finally {
 			reader.close();
 		}
 
-		this.processes = Collections.unmodifiableMap(tempProcesses);
+		this.processesByPID = Collections.unmodifiableMap(tempProcessesById);
+		this.processesByAddress = Collections.unmodifiableMap(tempProcessesByAddress);
 
-		udpSocket = new DatagramSocket(this.processes.get(id).address);
+		udpSocket = new DatagramSocket(this.processesByPID.get(id).address);
 	}
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Membership ");
-		sb.append("#" + this.processes.size());
+		sb.append("#" + this.processesByPID.size());
 		sb.append(" with processes: \n");
-		for (Process p : this.processes.values()) {
+		for (Process p : this.processesByPID.values()) {
 			sb.append(p.toString());
 			sb.append("\n");
 		}

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 public class AddressFilterLayer extends RxFilterLayer<DatagramPacket> {
     public AddressFilterLayer(Configuration cfg) {
-        this(cfg.processes.entrySet().stream().filter(entry -> !entry.getKey().equals(cfg.id)).map(Entry::getValue)
+        this(cfg.processesByPID.entrySet().stream().filter(entry -> !entry.getKey().equals(cfg.id)).map(Entry::getValue)
                 .map(process -> process.address).collect(Collectors.toSet()));
     }
 

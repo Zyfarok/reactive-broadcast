@@ -16,7 +16,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
     Map<Integer, Process> processes;
 
     public BestEffortBroadcastLayer(Configuration cfg) {
-        this.processes = cfg.processes;
+        this.processes = cfg.processesByPID;
     }
 
     /*
@@ -34,7 +34,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         Subject<DAPacket> extOut = subSocket.downPipe;
 
         // Exterior Messages
-        Observable<DAPacket> messagesExt = extIn.filter(DAPacket::isMessage);
+        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt.getContent().isMessage());
 
         // Interior Messages
         Observable<DAPacket> messagesIn = intIn;
@@ -44,7 +44,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         // trigger < pp2pSend, pi, m>
         messagesIn.subscribe(m -> {
             for (Process p : this.processes.values()) {
-                extOut.onNext(new DAPacket(p.address, m.getID()));
+                extOut.onNext(new DAPacket(p.address, m.getContent()));
             }
         });
 

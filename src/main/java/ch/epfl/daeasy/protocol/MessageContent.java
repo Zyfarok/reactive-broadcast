@@ -1,37 +1,82 @@
 package ch.epfl.daeasy.protocol;
 
-import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 public class MessageContent {
-	protected final long payload;
-	protected final String json;
-	
-	public Gson gson;
-	
-	public MessageContent(long payload){
-		this.payload = payload;
-		gson = new Gson();
-		json = gson.toJson(payload);
-	}
-	
-	public MessageContent(byte[] payload){
-		this.payload = ByteBuffer.wrap(payload).getLong();
-		gson = new Gson();
-		json = gson.toJson(payload);
-	}
-	
-    public boolean isACK() {
-        return this.payload < 0;
-    }
+	// seq = sequence number of this message
+	private final Optional<Long> seq;
+	// ack = sequence number of the acked message
+	private final Optional<Long> ack;
+	// pid = process ID of the origin
+	private final long pid;
 
-    public boolean isMessage() {
-        return this.payload > 0;
-    }
-    
-    private String getJson(){
-    	return json;
-    }
+	// json serializer/deserializer
+	private static Gson gson = new Gson();
 
+	private MessageContent(Optional<Long> seq, Optional<Long> ack, long pid) {
+		this.seq = seq;
+		this.ack = ack;
+		this.pid = pid;
+	}
+
+	public static MessageContent Message(long seq, long pid) {
+		return new MessageContent(Optional.of(seq), Optional.empty(), pid);
+	}
+
+	public static MessageContent ACK(long ack, long pid) {
+		return new MessageContent(Optional.empty(), Optional.of(ack), pid);
+	}
+
+	/*
+	 * Construct an ACK from a Message
+	 */
+	public static MessageContent ackFromMessage(MessageContent content) throws IllegalArgumentException {
+		if (!content.isMessage()) {
+			throw new IllegalArgumentException("cannot create ACK");
+		}
+
+		return MessageContent.ACK(content.seq.get(), content.pid);
+	}
+
+	public boolean isACK() {
+		return this.ack.isPresent();
+	}
+
+	public boolean isMessage() {
+		return this.seq.isPresent();
+	}
+
+	public String serialize() {
+		String jsonString = gson.toJson(this);
+		return jsonString;
+	}
+
+	public static MessageContent deserialize(String json) throws JsonSyntaxException {
+		return gson.fromJson(json, MessageContent.class);
+	}
+
+	public long getPID() {
+		return this.pid;
+	}
+
+	public Optional<Long> getSeq() {
+		return this.seq;
+	}
+
+	public Optional<Long> getAck() {
+		return this.ack;
+	}
+
+	public String toString() {
+		if (this.isACK()) {
+			return "ACK: (ack: " + this.ack.get() + " pid: " + this.pid + ")";
+		} else if (this.isMessage()) {
+			return "MSG: (seq: " + this.seq.get() + " pid: " + this.pid + ")";
+		} else {
+			return "undefined";
+		}
+	}
 }
