@@ -1,9 +1,9 @@
 package ch.epfl.daeasy.signals;
 
+import ch.epfl.daeasy.logging.Logging;
+import io.reactivex.schedulers.Schedulers;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
-
-import ch.epfl.daeasy.logging.Logging;
 
 /*
  * Signal Handler for SIGINT and SIGTERM.
@@ -29,6 +29,8 @@ public class StopSignalHandler implements SignalHandler {
 
 	public void handle(Signal signal) {
 		Logging.debug("stopsignalhandler: received " + signal.getName());
+		// good bye RX
+		Schedulers.shutdown();
 		for (Thread t : this.threads) {
 			t.interrupt();
 		}

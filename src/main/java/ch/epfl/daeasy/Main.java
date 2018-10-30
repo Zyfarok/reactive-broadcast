@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.layers.BestEffortBroadcastLayer;
+import ch.epfl.daeasy.layers.UniformReliableBroadcastLayer;
 import ch.epfl.daeasy.layers.PerfectLinkLayer;
 import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.DAPacket;
@@ -19,29 +20,6 @@ import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
 
 public class Main {
-
-	public static class MyThread extends Thread {
-		private String name;
-
-		public MyThread(String name) {
-			super();
-			this.name = name;
-		}
-
-		public void run() {
-			while (true) {
-				try {
-					Logging.log("thread " + this.name + " running");
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					return;
-				} catch (Exception e) {
-					System.out.println(e);
-					return;
-				}
-			}
-		}
-	}
 
 	public static void main(String[] args) {
 
@@ -94,26 +72,31 @@ public class Main {
 		Observable<DAPacket> packetsFromInt = Observable.fromArray(packetsInt).delay(1, TimeUnit.SECONDS);
 		Observable<DAPacket> packetsFromExt = Observable.fromArray(packetsExt).delay(3, TimeUnit.SECONDS).repeat(100);
 
-		// feed the subsocket with my ACK for message 1
-		RxSocket<DAPacket> subSocket = new RxSocket<DAPacket>(packetsFromExt);
+		// feed the bottomSocket with my ACK for message 1
+		RxSocket<DAPacket> bottomSocket = new RxSocket<DAPacket>(packetsFromExt);
 
-		RxLayer<DAPacket, DAPacket> innerLayer = new PerfectLinkLayer();
+		RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer();
 
-		RxSocket<DAPacket> middleSocket = subSocket.scheduleOn(Schedulers.trampoline())
-				.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), innerLayer))
+		RxSocket<DAPacket> plSocket = bottomSocket.scheduleOn(Schedulers.trampoline())
+				.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
 				.scheduleOn(Schedulers.trampoline());
 
-		// RxSocket<DAPacket> topSocket = middleSocket.stack(new
-		// BestEffortBroadcastLayer(cfg));
-		RxSocket<DAPacket> topSocket = middleSocket;
+		RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg));
+		RxSocket<DAPacket> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer(cfg));
 
+		RxSocket<DAPacket> topSocket = urbSocket;
 		// feed the topsocket with my Message 1
 		packetsFromInt.subscribe(topSocket.downPipe);
 
-		subSocket.upPipe.subscribe(pkt -> Logging.debug("EXT IN: " + pkt.toString()));
+		topSocket.upPipe.subscribe(pkt -> Logging.log(
+				"d " + cfg.processesByAddress.get(pkt.getPeer().toString()) + " " + pkt.getContent().getSeq().get()));
+
+		topSocket.downPipe.subscribe(pkt -> Logging.log("b " + pkt.getContent().getSeq().get()));
+
+		bottomSocket.upPipe.subscribe(pkt -> Logging.debug("EXT IN: " + pkt.toString()));
 		topSocket.downPipe.subscribe(pkt -> Logging.debug("INT IN: " + pkt.toString()));
 		topSocket.upPipe.subscribe(pkt -> Logging.debug("INT OUT: " + pkt.toString()));
-		subSocket.downPipe.blockingSubscribe(pkt -> Logging.debug("EXT OUT: " + pkt.toString()));
+		bottomSocket.downPipe.blockingSubscribe(pkt -> Logging.debug("EXT OUT: " + pkt.toString()));
 
 		Logging.debug("Done pushing.");
 

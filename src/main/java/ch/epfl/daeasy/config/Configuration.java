@@ -16,6 +16,7 @@ public class Configuration {
 	public final Map<Integer, Process> processesByPID;
 	public final Map<String, Process> processesByAddress;
 	public final Integer id;
+	public final Integer N;
 	public final DatagramSocket udpSocket;
 
 	/*
@@ -56,6 +57,8 @@ public class Configuration {
 
 		this.processesByPID = Collections.unmodifiableMap(tempProcessesById);
 		this.processesByAddress = Collections.unmodifiableMap(tempProcessesByAddress);
+
+		this.N = this.processesByPID.size();
 
 		udpSocket = new DatagramSocket(this.processesByPID.get(id).address);
 	}

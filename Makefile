@@ -1,5 +1,13 @@
 all: 
-	./gradlew fatJar
+	./gradlew testJar
+	cp build/libs/*.jar .
+
+fifo:
+	./gradlew fifoJar
+	cp build/libs/*.jar .
+
+lcb:
+	./gradlew lcbJar
 	cp build/libs/*.jar .
 
 clean:

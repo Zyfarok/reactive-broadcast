@@ -79,4 +79,31 @@ public class MessageContent {
 			return "undefined";
 		}
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+
+		if (!MessageContent.class.isAssignableFrom(obj.getClass())) {
+			return false;
+		}
+
+		final MessageContent other = (MessageContent) obj;
+		if (other.seq == null || other.ack == null) {
+			return false;
+		}
+
+		if (!other.seq.isPresent() || !other.ack.isPresent()) {
+			return false;
+		}
+
+		return this.ack.equals(other.ack) && this.seq.equals(other.seq) && this.pid == other.pid;
+	}
+
+	@Override
+	public int hashCode() {
+		return this.ack.hashCode() * this.seq.hashCode() * (int) this.pid;
+	}
 }
