@@ -15,22 +15,31 @@ public class RxBadRouter {
     private final Subject<PacketAndPeers> downPipe = PublishSubject.create();
     private final Observable<GroupedObservable<SocketAddress, PacketAndPeers>> upPipe;
 
-    public RxBadRouter(Double dropRate, Double loopRate, Long delayStep, TimeUnit delayUnit) {
+    public RxBadRouter(double dropRate, double loopRate, long delayStep, TimeUnit delayUnit) {
         // Packet pass randomly
         Observable<PacketAndPeers> passPipe = downPipe.filter(x -> random.nextDouble() > dropRate);
 
+        passPipe.forEach(x -> System.out.println("passPipe"));
         // Subject that will receive packets to delay
-        Subject<PacketAndPeers> toDelay = PublishSubject.create();
-        passPipe.subscribe(toDelay);
+        //Subject<PacketAndPeers> toDelay = PublishSubject.create();
 
-        // Partially delayed packet
-        Observable<PacketAndPeers> partiallyDelayed = toDelay.delay(delayStep, delayUnit);
-        // Group packet randomly
-        Observable<GroupedObservable<Boolean, PacketAndPeers>> loopOrNotLoop = partiallyDelayed.groupBy(x -> random.nextDouble() < loopRate);
-        // Send some random packets back to the delay
-        loopOrNotLoop.filter(o -> o.getKey()).flatMap(o -> o).subscribe(toDelay);
-        // Send the other packets to the output, grouped by destination.
-        upPipe = loopOrNotLoop.filter(o -> !o.getKey()).flatMap(o -> o).groupBy(x -> x.destination);
+
+
+        Subject<PacketAndPeers> couldBeDelayed = PublishSubject.create();
+        couldBeDelayed.forEach(x -> System.out.println("couldBeDelayed"));
+        passPipe.subscribe(couldBeDelayed);
+
+        // Randomly split packet to delay some
+        Observable<GroupedObservable<Boolean, PacketAndPeers>> delayOrNotDelay =
+                couldBeDelayed.groupBy(x -> random.nextDouble() < loopRate);
+        couldBeDelayed.forEach(x -> System.out.println("delayOrNotDelay"));
+
+        // Delay some messages
+        delayOrNotDelay.filter(o -> o.getKey()).flatMap(o -> o).delay(delayStep, delayUnit).subscribe(couldBeDelayed);
+
+        // Send the other messages
+        upPipe = delayOrNotDelay.filter(o -> !o.getKey()).flatMap(o -> o).groupBy(x -> x.destination);
+        upPipe.forEach(x -> System.out.println("upPipe"));
     }
 
     public RxSocket<DatagramPacket> buildSocket(SocketAddress address) {
