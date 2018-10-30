@@ -6,14 +6,17 @@ public class Process {
     // id
     public final int i;
     // network address
-    public final InetSocketAddress address; 
-    
-    
+    public final InetSocketAddress address;
+
     public Process(int i, InetSocketAddress address) {
         this.i = i;
         this.address = address;
     }
-    
+
+    public long getPID() {
+        return this.i;
+    }
+
     private String identifier() {
         return String.format("%s:%d", this.address.toString(), this.address.getPort());
     }
