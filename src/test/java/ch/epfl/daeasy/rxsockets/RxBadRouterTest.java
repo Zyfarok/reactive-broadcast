@@ -20,10 +20,10 @@ public class RxBadRouterTest {
 
         // Create TestObservers
         TestObserver<String> test1To2 = socket2.upPipe
-                .map(DatagramPacket::getData).map(String::new)
+                .map(x -> new String(x.getData(), x.getOffset(), x.getLength()))
                 .firstElement().test();
         TestObserver<String> test2To1 = socket1.upPipe
-                .map(DatagramPacket::getData).map(String::new)
+                .map(x -> new String(x.getData(), x.getOffset(), x.getLength()))
                 .firstElement().test();
 
         // None is done yet !
