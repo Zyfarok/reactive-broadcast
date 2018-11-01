@@ -9,34 +9,27 @@ import io.reactivex.subjects.PublishSubject;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketAddress;
+import java.net.SocketException;
 
 public class RxUDPSocket extends RxSocket<DatagramPacket> {
+    public RxUDPSocket(SocketAddress address) throws SocketException {
+        this(new DatagramSocket(address));
+    }
+
     public RxUDPSocket(DatagramSocket udpSocket) {
         this(udpSocket, PublishSubject.create());
     }
 
     private RxUDPSocket(DatagramSocket udpSocket, PublishSubject<DatagramPacket> udpSender) {
-        super(
-                createUDPReceiver(
-                        udpSocket,
-                        udpSender.observeOn(Schedulers.trampoline())
-                                .forEach(udpSocket::send)
-        ), udpSender);
+        super(createUDPReceiver(udpSocket), udpSender);
+        udpSender.observeOn(Schedulers.trampoline())
+                .forEach(udpSocket::send);
     }
 
-    private static Cancellable createCancellable(DatagramSocket udpSocket, Disposable sendersDisposable) {
-        return () -> {
-            sendersDisposable.dispose();
-            if (!udpSocket.isClosed()) {
-                udpSocket.close();
-            }
-        };
-    }
-
-    private static Observable<DatagramPacket> createUDPReceiver(DatagramSocket udpSocket, Disposable sendersDisposable) {
+    private static Observable<DatagramPacket> createUDPReceiver(DatagramSocket udpSocket) {
         return Observable.create(
                 (ObservableOnSubscribe<DatagramPacket>) emitter -> {
-                    emitter.setCancellable(createCancellable(udpSocket, sendersDisposable));
                     while (true) {
                         try {
                             byte[] rcvBuffer = new byte[65536];
