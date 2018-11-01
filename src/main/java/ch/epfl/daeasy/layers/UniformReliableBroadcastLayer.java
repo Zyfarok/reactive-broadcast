@@ -98,6 +98,9 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         messagesIn.subscribe(pkt -> {
             pending.add(new SourceMessagePair(this.pid, pkt.getContent()));
             extOut.onNext(pkt);
+        }, error -> {
+            System.out.println("error while receiving message from interior at URB: ");
+            error.printStackTrace();
         });
 
         // upon event <bebDeliver, pi, [Data,pj,m]> do
@@ -106,7 +109,6 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         // pending := pending U {[pj,m]}
         // trigger < bebBroadcast,[Data,pj,m]>
         messagesExt.subscribe(pkt -> {
-
             ack.putIfAbsent(pkt.getContent(), new HashSet<Long>());
             long s = this.processesByAddress.get(pkt.getPeer()).getPID();
             MessageContent m = pkt.getContent();
@@ -136,6 +138,9 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                 }
             }
 
+        }, error -> {
+            System.out.println("error while receiving message from exterior at URB: ");
+            error.printStackTrace();
         });
 
         //

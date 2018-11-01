@@ -46,6 +46,9 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
             for (Process p : this.processes.values()) {
                 extOut.onNext(new DAPacket(p.address, m.getContent()));
             }
+        }, error -> {
+            System.out.println("error while receiving message from interior at BEB: ");
+            error.printStackTrace();
         });
 
         // upon event < pp2pDeliver, pi, m> do
