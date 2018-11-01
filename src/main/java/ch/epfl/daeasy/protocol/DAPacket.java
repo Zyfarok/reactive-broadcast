@@ -1,6 +1,6 @@
 package ch.epfl.daeasy.protocol;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 /*
  * A DAPacket is a application-level payload with a correspondent.
@@ -8,14 +8,14 @@ import java.net.InetSocketAddress;
  */
 public class DAPacket {
     // actual message content sent/received on the wire
-    protected MessageContent content;
+    protected final MessageContent content;
 
     // correspondant peer
     // if this peer is sending the DAPacket, peer is the destination
     // if this peer is receiving the DAPacket, peer is the sender
-    protected final InetSocketAddress peer;
+    protected final SocketAddress peer;
 
-    public DAPacket(InetSocketAddress peer, MessageContent content) {
+    public DAPacket(SocketAddress peer, MessageContent content) {
         this.content = content;
         this.peer = peer;
     }
@@ -24,11 +24,31 @@ public class DAPacket {
         return this.content;
     }
 
-    public InetSocketAddress getPeer() {
+    public SocketAddress getPeer() {
         return this.peer;
     }
 
     public String toString() {
         return this.content.toString() + " PEER: " + this.peer.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+
+        if (!DAPacket.class.isAssignableFrom(obj.getClass())) {
+            return false;
+        }
+
+        final DAPacket other = (DAPacket) obj;
+
+        return this.content.equals(other.content) && this.peer.toString().equals(other.peer.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return this.peer.hashCode() * this.content.hashCode();
     }
 }

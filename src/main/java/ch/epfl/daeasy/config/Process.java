@@ -1,6 +1,7 @@
 package ch.epfl.daeasy.config;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 public class Process {
     // id
@@ -18,11 +19,11 @@ public class Process {
     }
 
     private String identifier() {
-        return String.format("%s:%d", this.address.toString(), this.address.getPort());
+        return String.format("%s", this.address.toString());
     }
 
     @Override
     public String toString() {
-        return new String("Process " + this.i + " @" + this.identifier());
+        return new String("process " + this.i + " @" + this.identifier());
     }
 }

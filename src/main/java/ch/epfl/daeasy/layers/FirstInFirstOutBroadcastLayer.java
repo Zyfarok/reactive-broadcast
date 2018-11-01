@@ -44,6 +44,9 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
         intIn.subscribe(pkt -> {
             extOut.onNext(pkt);
+        }, error -> {
+            System.out.println("error while receiving message from interior at FIFOB: ");
+            error.printStackTrace();
         });
 
         extIn.subscribe(pkt -> {
@@ -65,6 +68,9 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                 nextIDs.put(remotePID, nextIDs.get(remotePID) + 1);
             }
 
+        }, error -> {
+            System.out.println("error while receiving message from exteriror at FIFOB: ");
+            error.printStackTrace();
         });
 
         return socket;

@@ -4,7 +4,7 @@ import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.rxlayers.RxFilterLayer;
 
 import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,7 +15,7 @@ public class AddressFilterLayer extends RxFilterLayer<DatagramPacket> {
                 .map(process -> process.address).collect(Collectors.toSet()));
     }
 
-    private AddressFilterLayer(final Set<InetSocketAddress> peers) {
+    private AddressFilterLayer(final Set<SocketAddress> peers) {
         super(dpacket -> peers.contains(dpacket.getSocketAddress()));
     }
 }

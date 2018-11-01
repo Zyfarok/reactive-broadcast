@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,17 +11,59 @@ import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
-public class Configuration {
+public abstract class Configuration {
 	public final Map<Integer, Process> processesByPID;
 	public final Map<String, Process> processesByAddress;
 	public final Integer id;
 	public final Integer N;
-	public final DatagramSocket udpSocket;
+
+	public static enum Mode {
+		FIFO, LCB;
+	}
+
+	public abstract Mode getMode();
+
+	public static Mode getMode(String filepath) throws FileNotFoundException, IOException, ConfigurationException {
+		// distinguish mode by number of non empty lines
+		long lineCount = 0;
+		BufferedReader reader = new BufferedReader(new FileReader(filepath));
+		int n = -1;
+		try {
+			String sn = reader.readLine();
+			if (sn == null) {
+				reader.close();
+				throw new ConfigurationException("first line of configuration should be an integer");
+			}
+			n = Integer.parseInt(sn);
+			lineCount += 1;
+
+			String l;
+			while ((l = reader.readLine()) != null) {
+				if (l.trim().length() > 0) {
+					lineCount += 1;
+				}
+			}
+		} finally {
+			reader.close();
+		}
+
+		if (n == -1) {
+			throw new ConfigurationException("incorrect configuration");
+		}
+
+		if (lineCount == 2 * n + 1) {
+			return Mode.LCB;
+		} else if (lineCount == n + 2) {
+			return Mode.FIFO;
+		} else {
+			throw new ConfigurationException("configuration mode not handled");
+		}
+	}
 
 	/*
 	 * Reads file and builds Configuration.
 	 */
-	public Configuration(Integer id, String filepath)
+	protected Configuration(Integer id, String filepath)
 			throws FileNotFoundException, IOException, ConfigurationException {
 		this.id = id;
 
@@ -48,7 +89,7 @@ public class Configuration {
 				int port = Integer.parseInt(sps[2]);
 
 				InetSocketAddress addr = new InetSocketAddress(sps[1], port);
-				tempProcessesById.put(i, new Process(num, addr));
+				tempProcessesById.put(num, new Process(num, addr));
 				tempProcessesByAddress.put(addr.toString(), new Process(num, addr));
 			}
 		} finally {
@@ -60,7 +101,9 @@ public class Configuration {
 
 		this.N = this.processesByPID.size();
 
-		udpSocket = new DatagramSocket(this.processesByPID.get(id).address);
+		if (!this.processesByPID.containsKey(this.id)) {
+			throw new ConfigurationException("process with pid: " + this.id + " not present in configuration");
+		}
 	}
 
 	public String toString() {

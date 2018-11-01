@@ -95,7 +95,7 @@ public class MessageContent {
 			return false;
 		}
 
-		if (!other.seq.isPresent() || !other.ack.isPresent()) {
+		if (!other.seq.isPresent() && !other.ack.isPresent()) {
 			return false;
 		}
 

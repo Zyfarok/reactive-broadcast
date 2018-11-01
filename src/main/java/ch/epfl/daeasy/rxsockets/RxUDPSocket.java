@@ -16,38 +16,33 @@ public class RxUDPSocket extends RxSocket<DatagramPacket> {
     }
 
     private RxUDPSocket(DatagramSocket udpSocket, PublishSubject<DatagramPacket> udpSender) {
-        super(
-                createUDPReceiver(
-                        udpSocket,
-                        udpSender.observeOn(Schedulers.trampoline())
-                                .forEach(udpSocket::send)
-        ), udpSender);
+        super(createUDPReceiver(udpSocket, udpSender.observeOn(Schedulers.trampoline()).forEach(udpSocket::send)),
+                udpSender);
     }
 
     private static Cancellable createCancellable(DatagramSocket udpSocket, Disposable sendersDisposable) {
         return () -> {
-            sendersDisposable.dispose();
+            // sendersDisposable.dispose();
             if (!udpSocket.isClosed()) {
-                udpSocket.close();
+                // udpSocket.close();
             }
         };
     }
 
-    private static Observable<DatagramPacket> createUDPReceiver(DatagramSocket udpSocket, Disposable sendersDisposable) {
-        return Observable.create(
-                (ObservableOnSubscribe<DatagramPacket>) emitter -> {
-                    emitter.setCancellable(createCancellable(udpSocket, sendersDisposable));
-                    while (true) {
-                        try {
-                            byte[] rcvBuffer = new byte[65536];
-                            DatagramPacket datagramPacket = new DatagramPacket(rcvBuffer, rcvBuffer.length);
-                            udpSocket.receive(datagramPacket);
-                            emitter.onNext(datagramPacket);
-                        } catch (Exception e) {
-                            emitter.onError(e);
-                        }
-                    }
+    private static Observable<DatagramPacket> createUDPReceiver(DatagramSocket udpSocket,
+            Disposable sendersDisposable) {
+        return Observable.create((ObservableOnSubscribe<DatagramPacket>) emitter -> {
+            emitter.setCancellable(createCancellable(udpSocket, sendersDisposable));
+            while (true) {
+                try {
+                    byte[] rcvBuffer = new byte[65536];
+                    DatagramPacket datagramPacket = new DatagramPacket(rcvBuffer, rcvBuffer.length);
+                    udpSocket.receive(datagramPacket);
+                    emitter.onNext(datagramPacket);
+                } catch (Exception e) {
+                    emitter.onError(e);
                 }
-        ).subscribeOn(Schedulers.io());
+            }
+        }).subscribeOn(Schedulers.io());
     }
 }
