@@ -49,7 +49,7 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
                 .map(msg -> new DAPacket(msg.getPeer(), MessageContent.ackFromMessage(msg.getContent())));
 
         Observable<DAPacket> messagesOut = messagesIn.map(msg -> {
-            return Observable.just(msg).repeatWhen(completed -> completed.delay(1, TimeUnit.SECONDS))
+            return Observable.just(msg).repeatWhen(completed -> completed.delay(50, TimeUnit.MILLISECONDS))
                     .filter(a -> !acked.contains(msg.getContent().getSeq().get()));
         }).flatMap(x -> x);
 
