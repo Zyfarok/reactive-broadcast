@@ -4,6 +4,7 @@ import io.reactivex.observers.TestObserver;
 import org.junit.Test;
 
 import java.net.*;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -35,11 +36,11 @@ public class RxBadRouterTest {
         socket1.downPipe.onNext(new DatagramPacket(message1To2.getBytes(),
                 0, message1To2.getBytes().length, address2));
 
-        // This one is still not done yet !
-        test2To1.assertNotComplete();
+        // This one is already done now !
+        test1To2.awaitDone(1, SECONDS).assertResult(message1To2);
 
-        // But this one is already done now !
-        test1To2.assertResult(message1To2);
+        // But this one is still not done yet !
+        test2To1.assertNotComplete();
 
         // Send message from 2 to 1
         String message2To1 = "2To1";
@@ -47,7 +48,7 @@ public class RxBadRouterTest {
                 0, message2To1.getBytes().length, address1));
 
         // And now this one is done too !
-        test2To1.assertResult(message2To1);
+        test2To1.awaitDone(1, SECONDS).assertResult(message2To1);
     }
 
 
