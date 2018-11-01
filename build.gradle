@@ -13,29 +13,7 @@ compileJava {
     options.forkOptions.executable = 'javac'
 }
 
-task fifoJar(type: Jar) {
-	manifest {
-        attributes 'Implementation-Title': 'Gradle Jar File Example',  
-        	'Implementation-Version': version,
-        	'Main-Class': 'ch.epfl.daeasy.FIFO'
-    }
-    baseName = project.name + '-all'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-task lcbJar(type: Jar) {
-	manifest {
-        attributes 'Implementation-Title': 'Gradle Jar File Example',  
-        	'Implementation-Version': version,
-        	'Main-Class': 'ch.epfl.daeasy.LCB'
-    }
-    baseName = project.name + '-all'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-task testJar(type: Jar) {
+task makeJar(type: Jar) {
 	manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',  
         	'Implementation-Version': version,

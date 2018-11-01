@@ -12,10 +12,12 @@ public class Main {
 
 	public static void main(String[] args) {
 
+		Object activator = new Object();
+
 		Thread[] threads = {};
 		StopSignalHandler.install("INT", threads);
 		StopSignalHandler.install("TERM", threads);
-		StartSignalHandler.install("USR2");
+		StartSignalHandler.install("USR2", activator);
 
 		// da_proc n membership [extra params...]
 
@@ -36,6 +38,9 @@ public class Main {
 			return;
 		}
 
+		// Logging setup
+		Logging.configureFileHandler(String.format("da_proc_%d.out", cfg.id));
+
 		Logging.debug(cfg.toString());
 
 		Process p = cfg.processesByPID.get(n);
@@ -50,7 +55,7 @@ public class Main {
 		try {
 			switch (cfg.getMode()) {
 			case FIFO:
-				FIFO.run((FIFOConfiguration) cfg, p);
+				FIFO.run((FIFOConfiguration) cfg, p, activator);
 				break;
 			case LCB:
 				throw new UnsupportedOperationException("not yet implemented");
