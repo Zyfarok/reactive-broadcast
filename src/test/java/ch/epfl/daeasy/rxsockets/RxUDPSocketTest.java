@@ -12,10 +12,10 @@ import java.util.concurrent.TimeUnit;
 public class RxUDPSocketTest {
 
     @Test
-    public void canTransmitUDPSocketToItself() throws SocketException, InterruptedException {
-        SocketAddress address1 = new InetSocketAddress("localhost", 2001);
+    public void canSendAndReceiveLocalUDPPackets() throws SocketException {
+        SocketAddress address1 = new InetSocketAddress("127.0.0.1", 2001);
         RxUDPSocket socket1 = new RxUDPSocket(address1);
-        SocketAddress address2 = new InetSocketAddress("localhost", 2002);
+        SocketAddress address2 = new InetSocketAddress("127.0.0.1", 2002);
         RxUDPSocket socket2 = new RxUDPSocket(address2);
 
         // Create TestObservers
