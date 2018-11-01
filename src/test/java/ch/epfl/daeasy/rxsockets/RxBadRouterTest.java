@@ -9,7 +9,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class RxBadRouterTest {
     @Test
-    public void perfectBadRooterTransmitPackets() throws UnknownHostException {
+    public void perfectBadRouterTransmitPackets() throws UnknownHostException {
         // Create rooter and 2 sockets
         RxBadRouter rooter = new RxBadRouter(0,0, 0, SECONDS);
 
@@ -52,7 +52,7 @@ public class RxBadRouterTest {
 
 
     @Test
-    public void wostBadRooterNeverTransmitPacket() throws UnknownHostException {
+    public void wostBadRouterNeverTransmitPacket() throws UnknownHostException {
         // Create rooter and 2 sockets
         RxBadRouter rooter = new RxBadRouter(1,0, 0, SECONDS);
 
