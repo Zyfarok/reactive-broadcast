@@ -30,8 +30,8 @@ public class PerfectLinkLayerTest {
             .convertPipes(daConverter)
             .stack(new PerfectLinkLayer());
     @Test
-    public void perfectLinkEndsUpSendingPackets() {
-        RxBadRouter router = new RxBadRouter(0.8, 0.8, 75, MILLISECONDS);
+    public void perfectLinkEndsUpSendingPacketsAndRemoveDuplicates() {
+        RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
