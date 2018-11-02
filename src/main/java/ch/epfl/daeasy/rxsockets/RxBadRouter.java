@@ -19,19 +19,20 @@ public class RxBadRouter {
         // Packet pass randomly
         Observable<PacketAndPeers> passPipe = downPipe.filter(x -> random.nextDouble() > dropRate);
 
-        // Create entry to the probabilistic delay
-        Subject<PacketAndPeers> couldBeDelayed = PublishSubject.create();
-        passPipe.subscribe(couldBeDelayed);
+        Subject<PacketAndPeers> toBeDelayed = PublishSubject.create();
+        passPipe.subscribe(toBeDelayed);
 
         // Randomly split packet to delay some (but not all)
         Observable<GroupedObservable<Boolean, PacketAndPeers>> delayOrNotDelay =
-                couldBeDelayed.groupBy(x -> random.nextDouble() < loopRate);
+                toBeDelayed.groupBy(x -> random.nextDouble() < loopRate).share();
 
-        // Delay some messages
-        delayOrNotDelay.filter(o -> o.getKey()).flatMap(o -> o).delay(delayStep, delayUnit).subscribe(couldBeDelayed);
+        // Delay some message and send back to potential delay
+        delayOrNotDelay.filter(GroupedObservable::getKey)
+                .delay(delayStep, delayUnit)
+                .flatMap(o -> o).subscribe(toBeDelayed);
 
-        // Send the other messages
-        upPipe = delayOrNotDelay.filter(o -> !o.getKey()).flatMap(o -> o).groupBy(x -> x.destination);
+        // Send message that are not delayed anymore
+        upPipe = delayOrNotDelay.filter(o -> !o.getKey()).flatMap(o -> o).groupBy(x -> x.destination).share();
     }
 
     public RxSocket<DatagramPacket> buildSocket(SocketAddress address) {

@@ -17,10 +17,11 @@ import io.reactivex.subjects.Subject;
 public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
 
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
+        Observable<DAPacket> bottomUp = subSocket.upPipe.share();
         // Incoming Messages
-        Observable<DAPacket> messagesUp = subSocket.upPipe.filter(pkt -> pkt.getContent().isMessage());
+        Observable<DAPacket> messagesUp = bottomUp.filter(pkt -> pkt.getContent().isMessage()).share();
         // Incoming ACK
-        Observable<DAPacket> acksUp = subSocket.upPipe.filter(pkt -> pkt.getContent().isACK());
+        Observable<DAPacket> acksUp = bottomUp.filter(pkt -> pkt.getContent().isACK());
 
         RxSocket<DAPacket> socket = new RxSocket<>(messagesUp.distinct());
 
