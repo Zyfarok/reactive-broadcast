@@ -15,10 +15,13 @@ import org.junit.Test;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class PerfectLinkLayerTest {
     private final DatagramPacketConverter daConverter = new DatagramPacketConverter();
@@ -28,7 +31,7 @@ public class PerfectLinkLayerTest {
             .stack(new PerfectLinkLayer());
     @Test
     public void perfectLinkEndsUpSendingPackets() {
-        RxBadRouter router = new RxBadRouter(0.2,0.0,50, TimeUnit.MILLISECONDS);
+        RxBadRouter router = new RxBadRouter(0.8, 0.8, 75, MILLISECONDS);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
@@ -46,7 +49,7 @@ public class PerfectLinkLayerTest {
                 .map(x -> x.getContent().toString()).take(msgSet.size()).test();
 
         //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(10, TimeUnit.MILLISECONDS)
+        Observable.interval(10, MILLISECONDS)
                 .zipWith(contents, (a, b) -> b)
                 .map(c -> new DAPacket(address2,c))
                 .forEach(socket1.downPipe::onNext);

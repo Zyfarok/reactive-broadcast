@@ -15,7 +15,7 @@ public class RxBadRouterTest {
     @Test
     public void perfectBadRouterTransmitPackets() {
         // Create rooter and 2 sockets
-        RxBadRouter rooter = new RxBadRouter(0,0, 0, SECONDS);
+        RxBadRouter rooter = new RxBadRouter(0, 0.5, 1, MILLISECONDS);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
@@ -40,7 +40,7 @@ public class RxBadRouterTest {
                 0, message1To2.getBytes().length, address2));
 
         // This one is already done now !
-        test1To2.awaitDone(1, SECONDS).assertResult(message1To2);
+        test1To2.awaitDone(2, SECONDS).assertResult(message1To2);
 
         // But this one is still not done yet !
         test2To1.assertNotComplete();
@@ -51,14 +51,14 @@ public class RxBadRouterTest {
                 0, message2To1.getBytes().length, address1));
 
         // And now this one is done too !
-        test2To1.awaitDone(1, SECONDS).assertResult(message2To1);
+        test2To1.awaitDone(2, SECONDS).assertResult(message2To1);
     }
 
 
     @Test
     public void worstBadRouterNeverTransmitPacket() throws InterruptedException {
         // Create rooter and 2 sockets
-        RxBadRouter rooter = new RxBadRouter(1,0, 0, SECONDS);
+        RxBadRouter rooter = new RxBadRouter(1, 0.0, 0, MILLISECONDS);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
