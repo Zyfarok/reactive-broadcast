@@ -10,70 +10,119 @@
 #(should be adapted to the number of messages to send)
 time_to_finish=2
 
-init_time=2
+init_time=5
 
 #configure lossy network simulation
-sudo tc qdisc change dev lo root netem delay 50ms 200ms loss 10% 25% reorder 25% 50%
+#sudo tc qdisc change dev lo root netem delay 50ms 200ms loss 10% 25% reorder 25% 50%
 
 
-echo "127.0.0.1 11001
-127.0.0.1 11002
-127.0.0.1 11003
-127.0.0.1 11004
-127.0.0.1 11005" > membership
+#echo "127.0.0.1 11001
+#127.0.0.1 11002
+#127.0.0.1 11003
+#127.0.0.1 11004
+#127.0.0.1 11005" > membership
 
 #start 5 processes, each broadcasting 1000 messages
+
+echo "log file should look like this " > expected
+
 for i in `seq 1 5`
 do
-    ./da_proc $i membership &
+    java -jar DaProject-all-1.0-SNAPSHOT.jar $i test/membership_FIFO.txt &
     da_proc_id[$i]=$!
+    echo "process ${da_proc_id[$i]} started"
 done
 
-#leave some time for process initialization
+echo "processes started"
+
 sleep $init_time
+
+#Pause processes 1 and 2
+for i in `seq 1 2`
+do
+	kill -STOP ${da_proc_id[$i]} #pause process 1
+    echo "Process $i paused"
+done
+
+sleep $init_time
+
+#Send
+for i in `seq 3 4`
+do
+	kill -USR2 ${da_proc_id[$i]}
+    echo "msg broadcast for process $i"
+    echo "b $i " >> expected
+done
+
+#
+for i in `seq 1 2`
+do
+	kill -CONT ${da_proc_id[$i]} #pause process 1
+    echo "Process $i resumed"
+done
+
+wait 2
+
+for i in `seq 1 2`
+do
+	kill -USR2 ${da_proc_id[$i]}
+    echo "msg broadcast for process $i"
+    echo "b $i " >> expected
+done
+
+for i in `seq 1 5`
+do
+	kill -TERM ${da_proc_id[${i}]}
+    echo "process ${i} ended"
+done
+
+echo "processes closed"
+#leave some time for process initialization
+#sleep $init_time
 
 #do some nasty stuff like process crashes and delays
 #example:
-kill -STOP "${da_proc_id[1]}" #pause process 1
-sleep 0.5
-kill -STOP "${da_proc_id[3]}" #pause process 3
-sleep 1
-kill -TERM "${da_proc_id[2]}" #crash process 2
-da_proc_id[2]=""
-kill -CONT "${da_proc_id[3]}" #resume process 3
+#kill -STOP "${da_proc_id[1]}" #pause process 1
+#sleep 0.5
+#kill -STOP "${da_proc_id[3]}" #pause process 3
+#sleep 1
+#kill -TERM "${da_proc_id[2]}" #crash process 2
+#da_proc_id[2]=""
+#kill -CONT "${da_proc_id[3]}" #resume process 3
 
 #start broadcasting
-for i in `seq 1 5`
-do
-    if [ -n "${da_proc_id[$i]}" ]; then
-	kill -USR1 "${da_proc_id[$i]}"
-    fi
-done
+#for i in `seq 1 5`
+#do
+#    if [ -n "${da_proc_id[$i]}" ]; then
+#	kill -USR1 "${da_proc_id[$i]}"
+#    fi
+#done
 
 #do some more nasty stuff
 #example:
-kill -TERM "${da_proc_id[4]}" #crash process 4
-da_proc_id[4]=""
-kill -CONT "${da_proc_id[1]}" #resume process 1
+#kill -TERM "${da_proc_id[4]}" #crash process 4
+#da_proc_id[4]=""
+#kill -CONT "${da_proc_id[1]}" #resume process 1
 
 #leave some time for the correct processes to broadcast all messages
-sleep $time_to_finish
+#sleep $time_to_finish
 
 #stop all processes
-for i in `seq 1 5`
-do
-    if [ -n "${da_proc_id[$i]}" ]; then
-	kill -TERM "${da_proc_id[$i]}"
-    fi
-done
+#for i in `seq 1 5`
+#do
+#    if [ -n "${da_proc_id[$i]}" ]; then
+#	kill -TERM "${da_proc_id[$i]}"
+#    fi
+#done
 
 #wait until all processes stop
-for i in `seq 1 5`
-do
-	wait "${da_proc_id[$i]}"
-done
+#for i in `seq 1 5`
+#do
+#	wait "${da_proc_id[$i]}"
+#done
 
 #check logs for correctness
 #... (not implemented here)
 
-echo "Correctness test done."
+#echo "Correctness test done."
+exit 0
