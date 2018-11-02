@@ -1,33 +1,34 @@
 package ch.epfl.daeasy.rxsockets;
 
-import sun.java2d.xr.MutableInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RxClosableSocket<Top> extends RxSocket<Top> {
-    private final MutableInteger tapState;
-    private RxClosableSocket(RxSocket<Top> subSocket, MutableInteger tapState) {
-        super(subSocket.upPipe.filter(x -> tapState.getValue() != 0));
+    private final AtomicBoolean tapState;
+
+    private RxClosableSocket(RxSocket<Top> subSocket, AtomicBoolean tapState) {
+        super(subSocket.upPipe.filter(x -> tapState.get()));
         this.tapState = tapState;
-        this.downPipe.filter(x -> tapState.getValue() != 0).subscribe(subSocket.downPipe);
+        this.downPipe.filter(x -> tapState.get()).subscribe(subSocket.downPipe);
     }
 
     public static <Top> RxClosableSocket<Top> from(RxSocket<Top> subSocket) {
-        MutableInteger tapState = new MutableInteger(1);
+        AtomicBoolean tapState = new AtomicBoolean(true);
         return new RxClosableSocket<>(subSocket, tapState);
     }
 
     public void close() {
-        tapState.setValue(0);
+        tapState.set(false);
     }
 
     public void open() {
-        tapState.setValue(1);
+        tapState.set(true);
     }
 
     public boolean isClosed() {
-        return tapState.getValue() == 0;
+        return !tapState.get();
     }
 
     public boolean isOpen() {
-        return tapState.getValue() != 0;
+        return tapState.get();
     }
 }
