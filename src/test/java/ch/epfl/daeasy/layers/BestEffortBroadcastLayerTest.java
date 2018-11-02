@@ -22,6 +22,7 @@ import ch.epfl.daeasy.config.FIFOConfiguration;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.DatagramPacketConverter;
 import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxlayers.RxNil;
 import ch.epfl.daeasy.rxsockets.RxBadRouter;
@@ -50,11 +51,20 @@ public class BestEffortBroadcastLayerTest {
                 cfgs.add(new FIFOConfiguration(i + 1, "test/membership_fifo_test.txt"));
                 addrs.add(new InetSocketAddress("127.0.0.1", 10001 + i));
 
+                RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer();
+
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
-                        .convertPipes(daConverter).stack(new PerfectLinkLayer());
+                        .convertPipes(daConverter)
+                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+
                 final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)));
+
+                // new RxNil<DatagramPacket>().convertPipes(daConverter).stack(new
+                // PerfectLinkLayer());
+                // final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
+                // .stack(new BestEffortBroadcastLayer(cfgs.get(i)));
 
                 sockets.add(router.buildSocket(addrs.get(i)).stack(beb));
             }
@@ -74,23 +84,21 @@ public class BestEffortBroadcastLayerTest {
     public void broadcastOneProducer() {
         try {
 
-            List<MessageContent> contents = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 1))
+            List<MessageContent> contents = IntStream.range(0, 100).mapToObj(x -> MessageContent.Message(x, 1))
                     .collect(Collectors.toList());
             Set<String> msgSet = contents.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
             // Create TestObservers
             TestObserver<String> test2 = sockets.get(1).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
                     .test();
-            // TestObserver<String> test3 = sockets.get(2).upPipe.map(x ->
-            // x.getContent().toString()).take(msgSet.size())
-            // .test();
+            TestObserver<String> test3 = sockets.get(2).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
+                    .test();
 
             Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
                     .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
 
             test2.awaitDone(100, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
-            // test3.awaitDone(10,
-            // TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            test3.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
 
         } catch (Exception e) {
             fail("exception: " + e);
@@ -101,11 +109,11 @@ public class BestEffortBroadcastLayerTest {
     public void broadcastTwoProducer() {
         try {
 
-            List<MessageContent> contents1 = IntStream.range(0, 20).mapToObj(x -> MessageContent.Message(x, 1))
+            List<MessageContent> contents1 = IntStream.range(0, 100).mapToObj(x -> MessageContent.Message(x, 1))
                     .collect(Collectors.toList());
             Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
-            List<MessageContent> contents2 = IntStream.range(0, 15).mapToObj(x -> MessageContent.Message(x, 2))
+            List<MessageContent> contents2 = IntStream.range(0, 50).mapToObj(x -> MessageContent.Message(x, 2))
                     .collect(Collectors.toList());
             Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
