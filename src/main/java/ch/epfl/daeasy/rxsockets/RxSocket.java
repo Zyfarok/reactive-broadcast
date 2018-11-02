@@ -82,4 +82,10 @@ public class RxSocket<Top> implements RxStack<Top> {
                                                         RxLayer<Top,Higher> innerLayer) {
         return this.stack(RxGroupedLayer.create(bottomKey, topKey, innerLayer));
     }
+
+    @Override
+    public <Key> RxSocket<Top> stackGroupedBy(Function<Top, Key> key,
+                                              RxLayer<Top, Top> innerLayer) {
+        return this.stack(RxGroupedLayer.create(key, innerLayer));
+    }
 }
