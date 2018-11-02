@@ -14,8 +14,10 @@ import io.reactivex.subjects.Subject;
 public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
     Map<Integer, Process> processes;
+    int pid;
 
     public BestEffortBroadcastLayer(Configuration cfg) {
+        this.pid = cfg.id;
         this.processes = cfg.processesByPID;
     }
 
@@ -34,17 +36,16 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         Subject<DAPacket> extOut = subSocket.downPipe;
 
         // Exterior Messages
-        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt != null && pkt.getContent().isMessage());
-
-        // Interior Messages
-        Observable<DAPacket> messagesIn = intIn;
+        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt != null);
 
         // upon event <bebBroadcast, m>
         // forall pi in S do
         // trigger < pp2pSend, pi, m>
-        messagesIn.subscribe(m -> {
+        intIn.subscribe(m -> {
             for (Process p : this.processes.values()) {
-                extOut.onNext(new DAPacket(p.address, m.getContent()));
+                if (this.pid != p.i) {
+                    extOut.onNext(new DAPacket(p.address, m.getContent()));
+                }
             }
         }, error -> {
             System.out.println("error while receiving message from interior at BEB: ");
