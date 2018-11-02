@@ -37,11 +37,13 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
 
         // GroupBy upPipe input from subSocket
         Observable<GroupedObservable<Key, Bottom>> groupedBottomUpPipesIn =
-                subSocket.upPipe.groupBy(keyB).share();
+                subSocket.upPipe.groupBy(keyB)
+                        .replay(1).autoConnect();
 
         // GroupBy downPipe input from topSocket
         Observable<GroupedObservable<Key, Top>> groupedTopDownPipesIn =
-                topSocket.downPipe.groupBy(keyA).share();
+                topSocket.downPipe.groupBy(keyA)
+                        .replay(1).autoConnect();
 
         // Create observable of keys to trigger socket creation.
         Observable<Key> keyObservable = groupedBottomUpPipesIn.map(GroupedObservable::getKey)
