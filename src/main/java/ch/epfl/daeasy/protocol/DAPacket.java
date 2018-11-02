@@ -44,7 +44,7 @@ public class DAPacket {
 
         final DAPacket other = (DAPacket) obj;
 
-        return this.content.equals(other.content) && this.peer.toString().equals(other.peer.toString());
+        return this.content.equals(other.content) && this.peer.equals(other.peer);
     }
 
     @Override

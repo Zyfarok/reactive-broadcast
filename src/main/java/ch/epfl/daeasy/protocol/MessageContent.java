@@ -2,6 +2,7 @@ package ch.epfl.daeasy.protocol;
 
 import java.util.Optional;
 
+import com.google.common.base.Objects;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -104,6 +105,6 @@ public class MessageContent {
 
 	@Override
 	public int hashCode() {
-		return this.ack.hashCode() * this.seq.hashCode() * (int) this.pid;
+		return Objects.hashCode(this.ack, this.seq, this.pid);
 	}
 }
