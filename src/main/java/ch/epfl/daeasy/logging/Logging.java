@@ -7,7 +7,7 @@ import java.util.logging.*;
  * Thread-safe logging on STDOUT.
  */
 public final class Logging {
-	private final static String name = "da_proc";
+	private final static String name = "da_proc_default";
 	private static Logger logger;
 	private static SimpleFormatter formatter = new SimpleFormatter();
 	private static StreamHandler sh;
@@ -26,11 +26,11 @@ public final class Logging {
 			sh.setLevel(Level.ALL);
 			logger.addHandler(sh);
 
-			fh = new FileHandler(name + ".log");
-			fh.setFormatter(formatter);
-			fh.setLevel(Level.INFO);
-			logger.addHandler(fh);
-		} catch (SecurityException | IOException e) {
+			// fh = new FileHandler(name + ".log");
+			// fh.setFormatter(formatter);
+			// fh.setLevel(Level.INFO);
+			// logger.addHandler(fh);
+		} catch (SecurityException e) {
 			System.out.println(e);
 			System.exit(1);
 		}
@@ -54,6 +54,26 @@ public final class Logging {
 		synchronized (logger) {
 			sh.flush();
 			fh.flush();
+		}
+	}
+
+	// configure the logging
+	public static void configureFileHandler(String name) {
+		try {
+			logger = Logger.getLogger(name);
+			logger.setLevel(Level.ALL);
+
+			sh = new StreamHandler(System.out, new SimpleFormatter());
+			sh.setLevel(Level.ALL);
+			logger.addHandler(sh);
+
+			fh = new FileHandler(name);
+			fh.setFormatter(formatter);
+			fh.setLevel(Level.INFO);
+			logger.addHandler(fh);
+		} catch (SecurityException | IOException e) {
+			System.out.println(e);
+			System.exit(1);
 		}
 	}
 }

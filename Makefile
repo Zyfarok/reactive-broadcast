@@ -1,13 +1,7 @@
-all: 
-	./gradlew testJar
-	cp build/libs/*.jar .
+all: jar
 
-fifo:
-	./gradlew fifoJar
-	cp build/libs/*.jar .
-
-lcb:
-	./gradlew lcbJar
+jar:
+	./gradlew makeJar
 	cp build/libs/*.jar .
 
 clean:
@@ -16,5 +10,3 @@ clean:
 
 build: all
 
-run: all
-	./da_project

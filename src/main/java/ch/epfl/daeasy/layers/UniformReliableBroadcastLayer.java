@@ -110,7 +110,8 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         // trigger < bebBroadcast,[Data,pj,m]>
         messagesExt.subscribe(pkt -> {
             ack.putIfAbsent(pkt.getContent(), new HashSet<Long>());
-            long s = this.processesByAddress.get(pkt.getPeer()).getPID();
+            // TODO check this line
+            long s = this.processesByAddress.get(pkt.getPeer().toString()).getPID();
             MessageContent m = pkt.getContent();
             SourceMessagePair sm = new SourceMessagePair(s, m);
 

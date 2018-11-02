@@ -27,7 +27,7 @@ import io.reactivex.schedulers.Schedulers;
 
 public class FIFO {
 
-	public static void run(FIFOConfiguration cfg, Process p) throws SocketException {
+	public static void run(FIFOConfiguration cfg, Process p, Object activator) throws SocketException {
 		Logging.debug(p.address.toString());
 		// DatagramSocket socket = new DatagramSocket(p.address);
 		DatagramSocket socket = new DatagramSocket(p.address);
@@ -54,6 +54,15 @@ public class FIFO {
 		}
 
 		Observable<DAPacket> messages = Observable.fromIterable(outMessages).delay(1, TimeUnit.SECONDS);
+
+		try {
+			synchronized (activator) {
+				activator.wait();
+			}
+		} catch (Exception e) {
+			Logging.debug("error while waiting for USR2: " + e.toString());
+			System.exit(-1);
+		}
 
 		messages.subscribe(fifoSocket.downPipe);
 

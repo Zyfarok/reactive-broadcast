@@ -34,7 +34,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         Subject<DAPacket> extOut = subSocket.downPipe;
 
         // Exterior Messages
-        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt.getContent().isMessage());
+        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt != null && pkt.getContent().isMessage());
 
         // Interior Messages
         Observable<DAPacket> messagesIn = intIn;
