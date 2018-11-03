@@ -64,11 +64,12 @@ public class FIFO {
 			System.exit(-1);
 		}
 
-		messages.subscribe(fifoSocket.downPipe);
+		messages.subscribe(msg -> fifoSocket.downPipe.onNext(msg), error -> Logging.debug(error.toString()));
 
 		// logging
-		fifoSocket.upPipe.subscribe(pkt -> Logging.log(
-				"d " + cfg.processesByAddress.get(pkt.getPeer().toString()) + " " + pkt.getContent().getSeq().get()),
+		fifoSocket.upPipe.subscribe(
+				pkt -> Logging
+						.log("d " + cfg.processesByAddress.get(pkt.getPeer()) + " " + pkt.getContent().getSeq().get()),
 				error -> {
 					// System.out.println("handled error upPipe");
 					error.printStackTrace();
