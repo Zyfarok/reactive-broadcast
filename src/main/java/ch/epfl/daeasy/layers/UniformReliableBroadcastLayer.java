@@ -131,7 +131,6 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         }, error -> {
             Logging.debug("error while receiving message from exterior at URB: " + error.toString());
             error.printStackTrace();
-            System.out.println("heyyy");
         });
 
         return socket;
