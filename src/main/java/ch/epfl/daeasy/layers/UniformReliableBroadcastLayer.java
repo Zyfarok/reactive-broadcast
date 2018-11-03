@@ -1,5 +1,6 @@
 package ch.epfl.daeasy.layers;
 
+import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Set;
 
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
+import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
@@ -17,51 +19,16 @@ import io.reactivex.subjects.Subject;
 
 public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
-    /*
-     * A pair <PID, MessageContent> that represents a message sent by process with
-     * given PID The sender may not be the origin of the message.
-     */
-    private class SourceMessagePair {
-        protected final long source; // PID of the source
-        protected final MessageContent message; // actual message
-
-        private SourceMessagePair(long pid, MessageContent message) {
-            this.source = pid;
-            this.message = message;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-
-            if (!SourceMessagePair.class.isAssignableFrom(obj.getClass())) {
-                return false;
-            }
-
-            final SourceMessagePair other = (SourceMessagePair) obj;
-            if (other.message == null) {
-                return false;
-            }
-            return this.message.equals(other.message) && this.source == other.source;
-        }
-
-        @Override
-        public int hashCode() {
-            return (int) this.source * this.message.hashCode();
-        }
-
-    }
-
-    private final Map<String, Process> processesByAddress;
+    private final Map<SocketAddress, Process> processesByAddress;
     private final int N;
     private final long pid;
+    private final Process process;
 
     public UniformReliableBroadcastLayer(Configuration cfg) {
         this.pid = cfg.id;
         this.processesByAddress = cfg.processesByAddress;
         this.N = this.processesByAddress.size();
+        this.process = cfg.processesByPID.get(cfg.id);
     }
 
     /*
@@ -89,17 +56,20 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         // pending := ∅
         // forall m do ack [m] := ∅
         Set<MessageContent> delivered = new HashSet<>();
-        Set<SourceMessagePair> pending = new HashSet<>();
+        Set<MessageContent> pending = new HashSet<>();
         Map<MessageContent, Set<Long>> ack = new HashMap<>(); // message -> set of process (ids) that acked the message
 
         // upon event <urbBroadcast, m> do
         // pending := pending U {[self,m]}
-        // trigger < bebBroadcast, [Data,self,m]>
+        // trigger <bebBroadcast, [Data,self,m]>
         messagesIn.subscribe(pkt -> {
-            pending.add(new SourceMessagePair(this.pid, pkt.getContent()));
+            MessageContent m = pkt.getContent();
+            synchronized (pending) {
+                pending.add(m);
+            }
             extOut.onNext(pkt);
         }, error -> {
-            System.out.println("error while receiving message from interior at URB: ");
+            Logging.debug("error while receiving message from interior at URB: ");
             error.printStackTrace();
         });
 
@@ -107,44 +77,62 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         // ack[m] := ack[m] U {pi}
         // if [pj,m] not in pending then
         // pending := pending U {[pj,m]}
-        // trigger < bebBroadcast,[Data,pj,m]>
+        // trigger <bebBroadcast,[Data,pj,m]>
         messagesExt.subscribe(pkt -> {
-            ack.putIfAbsent(pkt.getContent(), new HashSet<Long>());
-            // TODO check this line
-            long s = this.processesByAddress.get(pkt.getPeer().toString()).getPID();
             MessageContent m = pkt.getContent();
-            SourceMessagePair sm = new SourceMessagePair(s, m);
 
-            // TODO check if m in delivered
+            // // /!\ check if m in delivered
+            // if (delivered.contains(m)) {
+            // return;
+            // }
 
-            if (!pending.contains(sm)) {
-                pending.add(sm);
-                extOut.onNext(pkt);
+            if (!this.processesByAddress.containsKey(pkt.getPeer())) {
+                throw new RuntimeException(
+                        "unknown process relay of packet: " + pkt.toString() + "\n" + this.processesByAddress.keySet());
+            }
 
-                // upon exists (s, m) ∈ pending such that candeliver (m) ∧ m ∈ delivered do
-                // delivered := delivered ∪ {m} ;
-                // trigger <urb, Deliver | s , m> ;
+            // relay is the process that sent us the message, not the origin of the message
+            long relayPID = this.processesByAddress.get(pkt.getPeer()).getPID();
 
-                for (SourceMessagePair smsg : pending) {
-                    if (delivered.contains(smsg.message)) {
-                        continue;
-                    }
+            synchronized (ack) {
+                ack.putIfAbsent(m, new HashSet<Long>());
+                ack.get(m).add(relayPID);
+            }
 
-                    if (ack.getOrDefault(smsg.message, new HashSet<>()).size() > this.N / 2.) {
-                        delivered.add(smsg.message);
-                        intOut.onNext(pkt);
+            synchronized (pending) {
+                if (!pending.contains(m)) {
+                    pending.add(m);
+                    extOut.onNext(new DAPacket(this.process.address, m));
+                }
+            }
+            // upon exists (s, m) ∈ pending such that candeliver (m) ∧ m ∈ delivered do
+            // delivered := delivered ∪ {m} ;
+            // trigger <urb, Deliver | s , m> ;
 
-                        // TODO remove m of pending
+            synchronized (pending) {
+
+                for (MessageContent smsg : pending) {
+
+                    synchronized (ack) {
+                        if (delivered.contains(smsg)) {
+                            continue;
+                        }
+                        if (ack.getOrDefault(smsg, new HashSet<>()).size() > (this.N - 1) / 2.) {
+                            delivered.add(smsg);
+                            intOut.onNext(pkt);
+
+                            // // /!\ remove m of pending
+                            // pending.remove(smsg);
+                        }
                     }
                 }
             }
 
         }, error -> {
-            System.out.println("error while receiving message from exterior at URB: ");
+            Logging.debug("error while receiving message from exterior at URB: " + error.toString());
             error.printStackTrace();
+            System.out.println("heyyy");
         });
-
-        //
 
         return socket;
     }

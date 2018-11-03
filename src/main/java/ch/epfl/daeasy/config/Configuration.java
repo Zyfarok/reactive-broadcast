@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,7 @@ import javax.naming.ConfigurationException;
 
 public abstract class Configuration {
 	public final Map<Integer, Process> processesByPID;
-	public final Map<String, Process> processesByAddress;
+	public final Map<SocketAddress, Process> processesByAddress;
 	public final Integer id;
 	public final Integer N;
 
@@ -68,7 +69,7 @@ public abstract class Configuration {
 		this.id = id;
 
 		Map<Integer, Process> tempProcessesById = new HashMap<Integer, Process>();
-		Map<String, Process> tempProcessesByAddress = new HashMap<String, Process>();
+		Map<SocketAddress, Process> tempProcessesByAddress = new HashMap<SocketAddress, Process>();
 		BufferedReader reader = new BufferedReader(new FileReader(filepath));
 
 		// read first line
@@ -90,7 +91,7 @@ public abstract class Configuration {
 
 				InetSocketAddress addr = new InetSocketAddress(sps[1], port);
 				tempProcessesById.put(num, new Process(num, addr));
-				tempProcessesByAddress.put(addr.toString(), new Process(num, addr));
+				tempProcessesByAddress.put(addr, new Process(num, addr));
 			}
 		} finally {
 			reader.close();
