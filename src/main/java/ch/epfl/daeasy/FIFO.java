@@ -68,9 +68,7 @@ public class FIFO {
 
 		// logging
 		fifoSocket.upPipe.subscribe(
-				pkt -> Logging
-						.log("d " + cfg.processesByAddress.get(pkt.getPeer()) + " " + pkt.getContent().getSeq().get()),
-				error -> {
+				pkt -> Logging.log("d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get()), error -> {
 					// System.out.println("handled error upPipe");
 					error.printStackTrace();
 				});

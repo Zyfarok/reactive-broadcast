@@ -53,7 +53,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
             Long seq = pkt.getContent().getSeq().get();
             Long remotePID = pkt.getContent().getPID();
 
-            if (nextIDs.get(remotePID) < seq) {
+            if (nextIDs.get(remotePID) > seq) {
                 // already received this sequence number
                 throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer");
             }
