@@ -116,10 +116,6 @@ public class UniformReliableBroadcastLayerTest {
 
         setup(0, 0, 0);
         try {
-            // close sockets after some time
-            Observable.just(1).delay(400, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(2).close());
-            Observable.just(1).delay(400, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(3).close());
-            Observable.just(1).delay(400, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(4).close());
 
             List<MessageContent> contents = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 1))
                     .collect(Collectors.toList());
@@ -137,14 +133,19 @@ public class UniformReliableBroadcastLayerTest {
             TestObserver<String> test5 = sockets.get(4).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
                     .test();
 
-            Observable.interval(150, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
+            // close sockets after some time
+            Observable.just(1).delay(300, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(2).close());
+            Observable.just(1).delay(500, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(3).close());
+            Observable.just(1).delay(700, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(4).close());
+
+            Observable.interval(200, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
                     .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
 
-            test1.awaitDone(5, TimeUnit.SECONDS).assertValueCount(2);
-            test2.awaitDone(5, TimeUnit.SECONDS).assertValueCount(2);
-            test3.awaitDone(5, TimeUnit.SECONDS).assertValueCount(2);
-            test4.awaitDone(5, TimeUnit.SECONDS).assertValueCount(2);
-            test5.awaitDone(5, TimeUnit.SECONDS).assertValueCount(2);
+            test1.awaitDone(2, TimeUnit.SECONDS).assertValueCount(3);
+            test2.assertValueCount(3);
+            test3.assertValueCount(1);
+            test4.assertValueCount(2);
+            test5.assertValueCount(3);
 
         } catch (Exception e) {
             fail("exception: " + e.toString());
