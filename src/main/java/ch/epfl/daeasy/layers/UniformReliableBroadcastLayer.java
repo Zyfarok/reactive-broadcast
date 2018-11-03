@@ -117,7 +117,7 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                         if (delivered.contains(smsg)) {
                             continue;
                         }
-                        if (ack.getOrDefault(smsg, new HashSet<>()).size() >= (this.N) / 2.) {
+                        if (ack.getOrDefault(smsg, new HashSet<>()).size() >= (this.N) / 2) {
                             delivered.add(smsg);
                             intOut.onNext(pkt);
 
