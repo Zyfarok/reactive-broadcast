@@ -1,60 +1,34 @@
 package ch.epfl.daeasy.layers;
 
-import java.util.Map;
-
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
+
+import java.util.stream.Collectors;
 
 public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
-    Map<Integer, Process> processes;
-    int pid;
+    private final Observable<Process> processes;
 
     public BestEffortBroadcastLayer(Configuration cfg) {
-        this.pid = cfg.id;
-        this.processes = cfg.processesByPID;
+        this.processes = Observable.fromIterable(
+                cfg.processesByPID.values().stream()
+                        .filter(p -> p.getPID() != cfg.id)
+                        .collect(Collectors.toList())
+        );
     }
 
     /*
      * Assumes subSocket is a PerfectLink GroupedLayer
      */
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
+        RxSocket<DAPacket> socket = new RxSocket<>(subSocket.upPipe);
 
-        Subject<DAPacket> subject = PublishSubject.create();
-
-        RxSocket<DAPacket> socket = new RxSocket<>(subject);
-
-        Subject<DAPacket> intOut = subject;
-        Observable<DAPacket> intIn = socket.downPipe;
-        Observable<DAPacket> extIn = subSocket.upPipe;
-        Subject<DAPacket> extOut = subSocket.downPipe;
-
-        // Exterior Messages
-        Observable<DAPacket> messagesExt = extIn.filter(pkt -> pkt != null);
-
-        // upon event <bebBroadcast, m>
-        // forall pi in S do
-        // trigger < pp2pSend, pi, m>
-        intIn.subscribe(m -> {
-            for (Process p : this.processes.values()) {
-                if (this.pid != p.i) {
-                    extOut.onNext(new DAPacket(p.address, m.getContent()));
-                }
-            }
-        }, error -> {
-            System.out.println("error while receiving message from interior at BEB: ");
-            error.printStackTrace();
-        });
-
-        // upon event < pp2pDeliver, pi, m> do
-        // trigger < bebDeliver, pi, m>
-        messagesExt.subscribe(intOut);
+        socket.downPipe.flatMap(m -> processes.map(p -> new DAPacket(p.address, m.getContent())))
+                .subscribe(subSocket.downPipe);
 
         return socket;
     }
