@@ -1,0 +1,142 @@
+#!/bin/bash
+#
+# Tests the correctness of the Uniform Reliable Broadcast application.
+#
+# This is an example script that shows the general structure of the
+# test. The details and parameters of the actual test might differ.
+#
+
+#time to wait for correct processes to broadcast all messages (in seconds)
+#(should be adapted to the number of messages to send)
+time_to_finish=2
+
+init_time=5
+
+#configure lossy network simulation
+#sudo tc qdisc change dev lo root netem delay 50ms 200ms loss 10% 25% reorder 25% 50%
+
+
+#echo "127.0.0.1 11001
+#127.0.0.1 11002
+#127.0.0.1 11003
+#127.0.0.1 11004
+#127.0.0.1 11005" > membership
+
+#start 5 processes, each broadcasting 1000 messages
+
+echo "log file should look like this " > expected
+
+#Start the 5 processes
+for i in `seq 1 5`
+do
+    java -jar DaProject-all-1.0-SNAPSHOT.jar $i test/membership_FIFO.txt &
+    da_proc_id[$i]=$!
+    echo "process ${da_proc_id[$i]} started"
+done
+
+echo "processes started"
+
+sleep $init_time
+
+#Pause processes 1 to 3
+for i in `seq 1 3`
+do
+	kill -STOP ${da_proc_id[$i]} #pause process
+    echo "Process $i paused"
+done
+
+sleep 2
+
+#Send from 3 and 4
+for i in `seq 3 4`
+do
+	kill -USR2 ${da_proc_id[$i]}
+    echo "msg broadcast for process $i"
+    echo "b $i " >> expected
+done
+
+# Deliver not expected yet since 3 is paused and 4 can only send to 5.
+
+sleep 5
+
+#Pause process 5
+kill -STOP ${da_proc_id[5]} #pause process
+echo "Process 5 paused"
+
+# Process 5 will never deliver !
+
+sleep 2
+
+#Resume process 3
+kill -CONT ${da_proc_id[3]} #resume process
+echo "Process 3 resumed"
+
+# Deliver of messages from 4 expected (but not from 3 since he couldn't communicate with 5)
+
+sleep 5
+
+#Resume process 2
+kill -CONT ${da_proc_id[2]} #resume process
+echo "Process 2 resumed"
+
+# Should deliver messages from 3 too know !
+
+sleep 5
+
+#Kill all processes
+for i in `seq 1 5`
+do
+	kill -TERM ${da_proc_id[${i}]}
+    echo "process ${i} ended"
+done
+
+echo "processes closed"
+#leave some time for process initialization
+#sleep $init_time
+
+#do some nasty stuff like process crashes and delays
+#example:
+#kill -STOP "${da_proc_id[1]}" #pause process 1
+#sleep 0.5
+#kill -STOP "${da_proc_id[3]}" #pause process 3
+#sleep 1
+#kill -TERM "${da_proc_id[2]}" #crash process 2
+#da_proc_id[2]=""
+#kill -CONT "${da_proc_id[3]}" #resume process 3
+
+#start broadcasting
+#for i in `seq 1 5`
+#do
+#    if [ -n "${da_proc_id[$i]}" ]; then
+#	kill -USR1 "${da_proc_id[$i]}"
+#    fi
+#done
+
+#do some more nasty stuff
+#example:
+#kill -TERM "${da_proc_id[4]}" #crash process 4
+#da_proc_id[4]=""
+#kill -CONT "${da_proc_id[1]}" #resume process 1
+
+#leave some time for the correct processes to broadcast all messages
+#sleep $time_to_finish
+
+#stop all processes
+#for i in `seq 1 5`
+#do
+#    if [ -n "${da_proc_id[$i]}" ]; then
+#	kill -TERM "${da_proc_id[$i]}"
+#    fi
+#done
+
+#wait until all processes stop
+#for i in `seq 1 5`
+#do
+#	wait "${da_proc_id[$i]}"
+#done
+
+#check logs for correctness
+#... (not implemented here)
+
+#echo "Correctness test done."
+exit 0
