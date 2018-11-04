@@ -26,7 +26,7 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
         RxSocket<DAPacket> socket = new RxSocket<>(messagesUp.distinct());
 
         // Transform ack messages to simple long stream
-        Observable<Long> acks = acksUp.map(ack -> ack.getContent().getAck().get());
+        Observable<Long> acks = acksUp.map(ack -> ack.getContent().getAck().get()).share();
 
         // Send ACK for all received messages
         messagesUp.map(msg -> new DAPacket(msg.getPeer(), MessageContent.ackFromMessage(msg.getContent())))
