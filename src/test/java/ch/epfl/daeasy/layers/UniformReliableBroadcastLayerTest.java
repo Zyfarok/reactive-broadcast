@@ -1,6 +1,18 @@
 package ch.epfl.daeasy.layers;
 
-import static org.junit.Assert.fail;
+import ch.epfl.daeasy.config.Configuration;
+import ch.epfl.daeasy.config.FIFOConfiguration;
+import ch.epfl.daeasy.protocol.DAPacket;
+import ch.epfl.daeasy.protocol.DatagramPacketConverter;
+import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.rxlayers.RxLayer;
+import ch.epfl.daeasy.rxlayers.RxNil;
+import ch.epfl.daeasy.rxsockets.RxBadRouter;
+import ch.epfl.daeasy.rxsockets.RxClosableSocket;
+import ch.epfl.daeasy.rxsockets.RxSocket;
+import io.reactivex.Observable;
+import io.reactivex.observers.TestObserver;
+import org.junit.Test;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
@@ -12,23 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import ch.epfl.daeasy.config.Configuration;
-import ch.epfl.daeasy.config.FIFOConfiguration;
-import ch.epfl.daeasy.protocol.DAPacket;
-import ch.epfl.daeasy.protocol.DatagramPacketConverter;
-import ch.epfl.daeasy.protocol.MessageContent;
-import ch.epfl.daeasy.rxlayers.RxClosableLayer;
-import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
-import ch.epfl.daeasy.rxlayers.RxLayer;
-import ch.epfl.daeasy.rxlayers.RxNil;
-import ch.epfl.daeasy.rxsockets.RxBadRouter;
-import ch.epfl.daeasy.rxsockets.RxClosableSocket;
-import ch.epfl.daeasy.rxsockets.RxSocket;
-import io.reactivex.Observable;
-import io.reactivex.observers.TestObserver;
+import static org.junit.Assert.fail;
 
 public class UniformReliableBroadcastLayerTest {
 
@@ -57,7 +53,7 @@ public class UniformReliableBroadcastLayerTest {
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter)
-                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        .stack(perfectLinkLayer);
 
                 final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)));

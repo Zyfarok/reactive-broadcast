@@ -76,6 +76,7 @@ public class RxSocket<Top> implements RxStack<Top> {
         return this.stack(new RxConverterLayer<>(converter));
     }
 
+    @Deprecated
     @Override
     public <Key,Higher> RxSocket<Higher> stackGroupedBy(Function<Top,Key> bottomKey,
                                                         Function<Higher, Key> topKey,
@@ -83,6 +84,7 @@ public class RxSocket<Top> implements RxStack<Top> {
         return this.stack(RxGroupedLayer.create(bottomKey, topKey, innerLayer));
     }
 
+    @Deprecated
     @Override
     public <Key> RxSocket<Top> stackGroupedBy(Function<Top, Key> key,
                                               RxLayer<Top, Top> innerLayer) {

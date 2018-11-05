@@ -30,10 +30,12 @@ public interface RxStack<Top> {
 
     <Higher> RxStack<Higher> convertValues(Converter<Top,Higher> converter);
 
+    @Deprecated
     <Key,Higher> RxStack<Higher> stackGroupedBy(Function<Top,Key> bottomKey,
                                                 Function<Higher, Key> topKey,
                                                 RxLayer<Top,Higher> innerLayer);
 
+    @Deprecated
     <Key> RxStack<Top> stackGroupedBy(Function<Top,Key> key,
                                       RxLayer<Top,Top> innerLayer);
 }
