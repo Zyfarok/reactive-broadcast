@@ -2,6 +2,7 @@ package ch.epfl.daeasy.layers;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
@@ -23,14 +24,13 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
      * Assumes subSocket is a UniformReliableBroadcast
      */
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
-
         Map<Long, Map<Long, DAPacket>> messages = new HashMap<>(); // pid -> message id -> message
-        Map<Long, Long> nextIDs = new HashMap<>(); // pid -> ID of message to be delivered next
+        Map<Long, AtomicLong> nextIDs = new HashMap<>(); // pid -> ID of message to be delivered next
 
         // initialize data structres
         for (Process p : this.cfg.processesByAddress.values()) {
             messages.put(p.getPID(), new HashMap<>());
-            nextIDs.put(p.getPID(), (long) 1); // by default, first message is '1'
+            nextIDs.put(p.getPID(), new AtomicLong(1)); // by default, first message is '1'
         }
 
         Subject<DAPacket> subject = PublishSubject.create();
@@ -52,22 +52,32 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         extIn.subscribe(pkt -> {
             Long seq = pkt.getContent().getSeq().get();
             Long remotePID = pkt.getContent().getPID();
+            AtomicLong nextId = nextIDs.get(remotePID);
+            Map<Long, DAPacket> pendingMessages = messages.get(remotePID);
 
-            if (nextIDs.get(remotePID) > seq) {
+            if (nextId.get() == seq) { // In this case, we can directly deliver
+                intOut.onNext(pkt);
+                nextId.set(seq + 1);
+
+                // If this "unlocks" previously pending messages, we can deliver them
+                synchronized (pendingMessages) {
+                    while (pendingMessages.containsKey(nextId.get())) {
+                        // deliver (and remove from pending)
+                        intOut.onNext(pendingMessages.get(nextId.get()));
+                        pendingMessages.remove(nextId.get());
+                        // update nextId
+                        nextId.set(nextId.get() + 1);
+                    }
+                }
+            } else if (nextId.get() > seq) {
                 // already received this sequence number
                 throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer");
+            } else {
+                // The message can't be delivered yet, so we'll add it to pending
+                synchronized (pendingMessages) {
+                    pendingMessages.put(seq, pkt);
+                }
             }
-
-            Map<Long, DAPacket> remoteMessages = messages.get(remotePID);
-            remoteMessages.put(seq, pkt);
-
-            while (remoteMessages.containsKey(nextIDs.get(remotePID))) {
-                // deliver
-                intOut.onNext(remoteMessages.get(nextIDs.get(remotePID)));
-                // update nextID
-                nextIDs.put(remotePID, nextIDs.get(remotePID) + 1);
-            }
-
         }, error -> {
             System.out.println("error while receiving message from exteriror at FIFOB: ");
             error.printStackTrace();

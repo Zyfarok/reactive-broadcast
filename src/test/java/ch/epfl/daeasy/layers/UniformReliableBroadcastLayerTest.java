@@ -89,22 +89,29 @@ public class UniformReliableBroadcastLayerTest {
             Set<String> msgSet = contents.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
             // Create TestObservers
+            TestObserver<String> test1 = sockets.get(0).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
+                    .test();
             TestObserver<String> test2 = sockets.get(1).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
                     .test();
             TestObserver<String> test3 = sockets.get(2).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
                     .test();
-            TestObserver<String> test4 = sockets.get(3).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
-                    .test();
-            TestObserver<String> test5 = sockets.get(4).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
-                    .test();
+//            TestObserver<String> test4 = sockets.get(3).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
+//                    .test();
+//            TestObserver<String> test5 = sockets.get(4).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
+//                    .test();
 
-            Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
+            closables.get(3).close();
+            closables.get(4).close();
+
+            Observable.interval(20, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
+            //Observable.fromIterable(contents)
                     .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
 
-            test2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
-            test3.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
-            test4.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
-            test5.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            test1.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            test2.awaitDone(8, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            test3.awaitDone(6, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            //test4.awaitDone(4, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+            //test5.awaitDone(4, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
 
         } catch (Exception e) {
             fail("exception: " + e.toString());
@@ -133,10 +140,14 @@ public class UniformReliableBroadcastLayerTest {
             TestObserver<String> test5 = sockets.get(4).upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
                     .test();
 
-            // close sockets after some time
-            Observable.just(1).delay(300, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(2).close());
-            Observable.just(1).delay(500, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(3).close());
-            Observable.just(1).delay(700, TimeUnit.MILLISECONDS).subscribe(o -> closables.get(4).close());
+            // Close socket 1 at the start (for more challenge)
+            closables.get(1).close();
+            Observable.just(closables.get(1)).delay(225, TimeUnit.MILLISECONDS).subscribe(RxClosableSocket::open);
+
+            // Close sockets after some time
+            Observable.just(closables.get(2)).delay(300, TimeUnit.MILLISECONDS).subscribe(RxClosableSocket::close);
+            Observable.just(closables.get(3)).delay(500, TimeUnit.MILLISECONDS).subscribe(RxClosableSocket::close);
+            Observable.just(closables.get(4)).delay(700, TimeUnit.MILLISECONDS).subscribe(RxClosableSocket::close);
 
             Observable.interval(200, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
                     .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
@@ -152,4 +163,76 @@ public class UniformReliableBroadcastLayerTest {
         }
     }
 
+    @Test
+    public void advancedTest() throws InterruptedException {
+        setup(0, 0, 0);
+
+        closables.forEach(RxClosableSocket::close);
+        closables.get(3).open();
+        closables.get(4).open();
+
+        List<MessageContent> contents1 = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 3))
+                .collect(Collectors.toList());
+        Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
+
+
+        List<MessageContent> contents2 = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 4))
+                .collect(Collectors.toList());
+        Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
+
+
+        TestObserver<String> test1 = sockets.get(0).upPipe
+                .map(x -> x.getContent().toString())
+                .take(msgSet1.size() + msgSet2.size())
+                .test();
+        TestObserver<String> test2 = sockets.get(1).upPipe
+                .map(x -> x.getContent().toString())
+                .take(msgSet1.size() + msgSet2.size())
+                .test();
+        TestObserver<String> test3 = sockets.get(2).upPipe
+                .map(x -> x.getContent().toString())
+                .take(msgSet1.size() + msgSet2.size())
+                .test();
+        TestObserver<String> test4 = sockets.get(3).upPipe
+                .map(x -> x.getContent().toString())
+                .take(msgSet1.size() + msgSet2.size())
+                .test();
+        TestObserver<String> test5 = sockets.get(4).upPipe
+                .map(x -> x.getContent().toString())
+                .take(msgSet1.size() + msgSet2.size())
+                .test();
+
+        Thread.sleep(500);
+
+        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
+                .map(c -> new DAPacket(null, c)).forEach(sockets.get(2).downPipe::onNext);
+
+
+        Observable.interval(43, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+                .map(c -> new DAPacket(null, c)).forEach(sockets.get(3).downPipe::onNext);
+
+        Thread.sleep(3000);
+
+        test1.assertValueCount(0);
+        test2.assertValueCount(0);
+        test3.assertValueCount(0);
+        test4.assertValueCount(0);
+        test5.assertValueCount(0);
+
+        closables.get(4).close();
+        Thread.sleep(500);
+        closables.get(2).open();
+
+        Thread.sleep(3000);
+
+        test1.assertValueCount(0);
+        test2.assertValueCount(0);
+        test3.assertValueCount(0);
+        test5.assertValueCount(0);
+
+        test4.assertValueCount(msgSet2.size()).assertValueSet(msgSet2);
+
+        //Thread.sleep(5000);
+
+    }
 }
