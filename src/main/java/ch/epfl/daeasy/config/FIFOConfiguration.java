@@ -1,11 +1,10 @@
 package ch.epfl.daeasy.config;
 
+import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-
-import javax.naming.ConfigurationException;
 
 public class FIFOConfiguration extends Configuration {
 

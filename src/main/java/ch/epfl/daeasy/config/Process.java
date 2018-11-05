@@ -1,7 +1,6 @@
 package ch.epfl.daeasy.config;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 public class Process {
     // id

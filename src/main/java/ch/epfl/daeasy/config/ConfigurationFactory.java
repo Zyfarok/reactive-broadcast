@@ -1,9 +1,8 @@
 package ch.epfl.daeasy.config;
 
+import javax.naming.ConfigurationException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-
-import javax.naming.ConfigurationException;
 
 public class ConfigurationFactory {
     public static Configuration build(Integer id, String filepath)

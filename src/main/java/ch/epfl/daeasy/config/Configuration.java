@@ -1,5 +1,6 @@
 package ch.epfl.daeasy.config;
 
+import javax.naming.ConfigurationException;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -9,8 +10,6 @@ import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.naming.ConfigurationException;
 
 public abstract class Configuration {
 	public final Map<Integer, Process> processesByPID;

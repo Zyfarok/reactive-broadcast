@@ -1,12 +1,11 @@
 package ch.epfl.daeasy.protocol;
 
+import com.google.common.base.Converter;
+import io.reactivex.Observable;
+
 import java.net.DatagramPacket;
 import java.net.SocketAddress;
 import java.util.Optional;
-
-import com.google.common.base.Converter;
-
-import io.reactivex.Observable;
 
 public class DatagramPacketConverter extends Converter<Observable<DatagramPacket>, Observable<DAPacket>> {
 
