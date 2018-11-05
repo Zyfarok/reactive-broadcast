@@ -1,10 +1,10 @@
 package ch.epfl.daeasy.protocol;
 
+import java.util.Optional;
+
 import com.google.common.base.Objects;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-
-import java.util.Optional;
 
 public class MessageContent {
 	// seq = sequence number of this message

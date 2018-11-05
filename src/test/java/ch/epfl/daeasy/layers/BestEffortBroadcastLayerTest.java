@@ -1,19 +1,6 @@
 package ch.epfl.daeasy.layers;
 
-import ch.epfl.daeasy.config.Configuration;
-import ch.epfl.daeasy.config.FIFOConfiguration;
-import ch.epfl.daeasy.protocol.DAPacket;
-import ch.epfl.daeasy.protocol.DatagramPacketConverter;
-import ch.epfl.daeasy.protocol.MessageContent;
-import ch.epfl.daeasy.rxlayers.RxLayer;
-import ch.epfl.daeasy.rxlayers.RxNil;
-import ch.epfl.daeasy.rxsockets.RxBadRouter;
-import ch.epfl.daeasy.rxsockets.RxSocket;
-import com.google.common.collect.Sets;
-import io.reactivex.Observable;
-import io.reactivex.observers.TestObserver;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.fail;
 
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
@@ -25,7 +12,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.fail;
+import com.google.common.collect.Sets;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import ch.epfl.daeasy.config.Configuration;
+import ch.epfl.daeasy.config.FIFOConfiguration;
+import ch.epfl.daeasy.protocol.DAPacket;
+import ch.epfl.daeasy.protocol.DatagramPacketConverter;
+import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.rxlayers.RxLayer;
+import ch.epfl.daeasy.rxlayers.RxNil;
+import ch.epfl.daeasy.rxsockets.RxBadRouter;
+import ch.epfl.daeasy.rxsockets.RxSocket;
+import io.reactivex.Observable;
+import io.reactivex.observers.TestObserver;
 
 public class BestEffortBroadcastLayerTest {
 

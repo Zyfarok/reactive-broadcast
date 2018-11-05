@@ -1,8 +1,9 @@
 package ch.epfl.daeasy.signals;
 
-import ch.epfl.daeasy.logging.Logging;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
+
+import ch.epfl.daeasy.logging.Logging;
 
 /*
  * Signal Handler for SIGINT and SIGTERM.

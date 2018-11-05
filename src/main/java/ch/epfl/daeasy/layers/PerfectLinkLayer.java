@@ -1,12 +1,18 @@
 package ch.epfl.daeasy.layers;
 
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import io.reactivex.Observable;
-
-import java.util.concurrent.TimeUnit;
+import io.reactivex.functions.Predicate;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 
 public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
 
