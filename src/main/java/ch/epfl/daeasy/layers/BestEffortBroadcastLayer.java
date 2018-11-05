@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 
 public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
-    private final Observable<Process> processes;
+    private final Observable<Process> otherProcesses;
 
     public BestEffortBroadcastLayer(Configuration cfg) {
-        this.processes = Observable.fromIterable(
+        this.otherProcesses = Observable.fromIterable(
                 cfg.processesByPID.values().stream()
                         .filter(p -> p.getPID() != cfg.id)
                         .collect(Collectors.toList())
@@ -27,7 +27,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
     public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
         RxSocket<DAPacket> socket = new RxSocket<>(subSocket.upPipe);
 
-        socket.downPipe.flatMap(m -> processes.map(p -> new DAPacket(p.address, m.getContent())))
+        socket.downPipe.flatMap(m -> otherProcesses.map(p -> new DAPacket(p.address, m.getContent())))
                 .subscribe(subSocket.downPipe);
 
         return socket;
