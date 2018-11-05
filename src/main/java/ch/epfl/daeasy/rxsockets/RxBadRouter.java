@@ -12,33 +12,37 @@ import java.util.concurrent.TimeUnit;
 
 public class RxBadRouter {
     private final Random random = new Random();
-    private final Subject<PacketAndPeers> mergedDownPipe = PublishSubject.create();
-    private final Observable<GroupedObservable<SocketAddress, PacketAndPeers>> mergedUpPipe;
+    private final Subject<PacketAndPeers> downPipe = PublishSubject.create();
+    private final Observable<GroupedObservable<SocketAddress, PacketAndPeers>> upPipe;
 
-    public RxBadRouter(double dropRate, double delayRate, long delay, TimeUnit delayUnit) {
+    public RxBadRouter(double dropRate, double loopRate, long delayStep, TimeUnit delayUnit) {
         // Packet pass randomly
-        Observable<PacketAndPeers> passPipe = mergedDownPipe.filter(x -> random.nextDouble() > dropRate);
+        Observable<PacketAndPeers> passPipe = downPipe.filter(x -> random.nextDouble() > dropRate);
+
+        Subject<PacketAndPeers> toBeDelayed = PublishSubject.create();
+        passPipe.subscribe(toBeDelayed);
 
         // Randomly split packet to delay some (but not all)
         Observable<GroupedObservable<Boolean, PacketAndPeers>> delayOrNotDelay =
-                passPipe.groupBy(x -> random.nextDouble() < delayRate).share();
+                toBeDelayed.groupBy(x -> random.nextDouble() < loopRate).share();
 
-        // Delay some message, merge with others and group by destination.
-        mergedUpPipe = delayOrNotDelay.filter(GroupedObservable::getKey)
-                .delay(delay, delayUnit)
-                .mergeWith(delayOrNotDelay.filter(o -> !o.getKey()))
-                .flatMap(o -> o)
-                .groupBy(x -> x.destination).share();
+        // Delay some message and send back to potential delay
+        delayOrNotDelay.filter(GroupedObservable::getKey)
+                .delay(delayStep, delayUnit)
+                .flatMap(o -> o).subscribe(toBeDelayed);
+
+        // Send message that are not delayed anymore
+        upPipe = delayOrNotDelay.filter(o -> !o.getKey()).flatMap(o -> o).groupBy(x -> x.destination).share();
     }
 
     public RxSocket<DatagramPacket> buildSocket(SocketAddress address) {
         // Create socket that receives messages sent to him.
-        RxSocket<DatagramPacket> socket = new RxSocket<>(
-                mergedUpPipe.filter(o -> o.getKey().equals(address))
+        RxSocket<DatagramPacket> socket = new RxSocket<DatagramPacket>(
+                upPipe.filter(o -> o.getKey().equals(address))
                         .flatMap(o -> o)
                         .map(PacketAndPeers::getUpPacket));
         // Send the packets coming from the socket to other sockets.
-        socket.downPipe.map(x -> new PacketAndPeers(x, address)).subscribe(mergedDownPipe);
+        socket.downPipe.map(x -> new PacketAndPeers(x, address)).subscribe(downPipe);
         return socket;
     }
 
