@@ -1,6 +1,13 @@
 package ch.epfl.daeasy;
 
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import ch.epfl.daeasy.config.FIFOConfiguration;
+import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.layers.BestEffortBroadcastLayer;
 import ch.epfl.daeasy.layers.FirstInFirstOutBroadcastLayer;
@@ -10,18 +17,13 @@ import ch.epfl.daeasy.logging.Logging;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.DatagramPacketConverter;
 import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxlayers.RxPipeConverterLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import io.reactivex.Observable;
 import io.reactivex.schedulers.Schedulers;
-
-import java.net.DatagramSocket;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class FIFO {
 
@@ -37,7 +39,7 @@ public class FIFO {
 		RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer();
 		// add the perfect link layers
 		RxSocket<DAPacket> plSocket = converterSocket.scheduleOn(Schedulers.trampoline())
-				.stack(perfectLinkLayer)
+				.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
 				.scheduleOn(Schedulers.trampoline());
 		// add the best effort broadcast layer
 		RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg));

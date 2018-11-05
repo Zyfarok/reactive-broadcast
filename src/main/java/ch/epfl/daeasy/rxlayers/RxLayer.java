@@ -89,7 +89,6 @@ public abstract class RxLayer<Bottom,Top> implements RxStack<Top> {
         return this.stack(new RxConverterLayer<>(converter));
     }
 
-    @Deprecated
     @Override
     public <Key,Higher> RxLayer<Bottom,Higher> stackGroupedBy(Function<Top,Key> bottomKey,
                                                               Function<Higher, Key> topKey,
@@ -97,7 +96,6 @@ public abstract class RxLayer<Bottom,Top> implements RxStack<Top> {
         return this.stack(RxGroupedLayer.create(bottomKey, topKey, innerLayer));
     }
 
-    @Deprecated
     @Override
     public <Key> RxLayer<Bottom,Top> stackGroupedBy(Function<Top,Key> key,
                                                               RxLayer<Top,Top> innerLayer) {

@@ -22,6 +22,7 @@ import ch.epfl.daeasy.config.FIFOConfiguration;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.DatagramPacketConverter;
 import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.rxlayers.RxGroupedLayer;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxlayers.RxNil;
 import ch.epfl.daeasy.rxsockets.RxBadRouter;
@@ -55,7 +56,7 @@ public class BestEffortBroadcastLayerTest {
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter)
-                        .stack(perfectLinkLayer);
+                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
 
                 final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)));

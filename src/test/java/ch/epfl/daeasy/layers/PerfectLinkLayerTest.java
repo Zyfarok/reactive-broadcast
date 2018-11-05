@@ -63,7 +63,7 @@ public class PerfectLinkLayerTest {
     private final RxLayer<DatagramPacket,DAPacket> groupedLayers = new RxNil<DatagramPacket>()
             .scheduleOn(Schedulers.trampoline())
             .convertPipes(daConverter)
-            .stack(new PerfectLinkLayer())
+            .stackGroupedBy(DAPacket::getPeer, new PerfectLinkLayer())
             .scheduleOn(Schedulers.trampoline());
 
     @Test
@@ -132,7 +132,7 @@ public class PerfectLinkLayerTest {
 
         RxSocket<DAPacket> socket1 = subSocket1.stack(new PerfectLinkLayer())
                 .scheduleOn(Schedulers.trampoline());
-        RxSocket<DAPacket> socket2 = subSocket2.stack(new PerfectLinkLayer())
+        RxSocket<DAPacket> socket2 = subSocket2.stackGroupedBy(DAPacket::getPeer, new PerfectLinkLayer())
                 .scheduleOn(Schedulers.trampoline());
 
         List<MessageContent> contents1To2 = IntStream.range(0,100)

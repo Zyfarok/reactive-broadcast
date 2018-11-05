@@ -7,7 +7,6 @@ import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
 import io.reactivex.subjects.PublishSubject;
 
-@Deprecated
 public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
     private final Function<Bottom, Key> keyB;
     private final Function<Top, Key> keyA;
