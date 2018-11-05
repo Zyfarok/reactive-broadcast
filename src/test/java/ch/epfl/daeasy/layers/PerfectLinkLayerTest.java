@@ -50,7 +50,7 @@ public class PerfectLinkLayerTest {
                 .map(x -> x.getContent().toString()).take(msgSet.size()).test();
 
         //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(10, MILLISECONDS)
+        Observable.interval(1, MILLISECONDS)
                 .zipWith(contents, (a, b) -> b)
                 .map(c -> new DAPacket(address2,c))
                 .forEach(socket1.downPipe::onNext);
@@ -103,7 +103,7 @@ public class PerfectLinkLayerTest {
                 .map(x -> x.getContent().toString()).take(msgSetTo3.size()).test();
 
         // Send all packets
-        Observable.interval(10, MILLISECONDS)
+        Observable.interval(1, MILLISECONDS)
                 .zipWith(packets, (a, b) -> b)
                 .forEach(socket1.downPipe::onNext);
 
