@@ -88,8 +88,4 @@ public class RxSocket<Top> implements RxStack<Top> {
                                               RxLayer<Top, Top> innerLayer) {
         return this.stack(RxGroupedLayer.create(key, innerLayer));
     }
-
-    public RxClosableSocket<Top> toClosable() {
-        return RxClosableSocket.from(this);
-    }
 }
