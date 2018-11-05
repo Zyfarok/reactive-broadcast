@@ -1,6 +1,7 @@
 package ch.epfl.daeasy.protocol;
 
 import com.google.common.base.Converter;
+import com.google.gson.JsonSyntaxException;
 import io.reactivex.Observable;
 
 import java.net.DatagramPacket;
@@ -9,20 +10,24 @@ import java.util.Optional;
 
 public class DatagramPacketConverter extends Converter<Observable<DatagramPacket>, Observable<DAPacket>> {
 
+    @Override
     public Observable<DAPacket> doForward(Observable<DatagramPacket> pkts) {
-        return pkts.map(pkt -> {
-            DAPacket packet = null;
+        return pkts.flatMap(pkt -> {
+            SocketAddress peer = pkt.getSocketAddress();
+            String packetString = new String(pkt.getData(), pkt.getOffset(), pkt.getLength());
             try {
-                SocketAddress peer = pkt.getSocketAddress();
                 MessageContent content = MessageContent
-                        .deserialize(new String(pkt.getData(), pkt.getOffset(), pkt.getLength()));
-                packet = new DAPacket(peer, content);
-            } catch (Exception ignored) {
+                        .deserialize(packetString);
+                return Observable.just(new DAPacket(peer, content));
+            } catch (JsonSyntaxException ignored) {
+                System.err.println("Error encountered in DatagramPacketConverter while converting DatagramPacket to DAPacket, packet ignored :");
+                System.err.println("from : "+ peer + " , content : \"" + packetString + "\"");
+                return Observable.empty();
             }
-            return Optional.ofNullable(packet);
-        }).filter(opkt -> opkt.isPresent()).map(opkt -> opkt.get());
+        });
     }
 
+    @Override
     public Observable<DatagramPacket> doBackward(Observable<DAPacket> msgs) {
         return msgs.map(msg -> {
             byte[] buf = msg.content.serialize().getBytes();
