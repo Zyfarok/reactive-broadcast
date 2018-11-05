@@ -1,47 +1,46 @@
 package ch.epfl.daeasy.layers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
-import ch.epfl.daeasy.protocol.MessageContent;
+import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-public class FirstInFirstOutBroadcastLayer extends RxLayer<MessageContent, MessageContent> {
+public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
     private final Configuration cfg;
 
     public FirstInFirstOutBroadcastLayer(Configuration cfg) {
         this.cfg = cfg;
-
     }
 
     /*
      * Assumes subSocket is a UniformReliableBroadcast
      */
-    public RxSocket<MessageContent> stackOn(RxSocket<MessageContent> subSocket) {
-        Map<Long, Map<Long, MessageContent>> messages = new HashMap<>(); // pid -> message id -> message
-        Map<Long, AtomicLong> nextIDs = new HashMap<>(); // pid -> ID of message to be delivered next
+    public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
+
+        Map<Long, Map<Long, DAPacket>> messages = new HashMap<>(); // pid -> message id -> message
+        Map<Long, Long> nextIDs = new HashMap<>(); // pid -> ID of message to be delivered next
 
         // initialize data structres
         for (Process p : this.cfg.processesByAddress.values()) {
             messages.put(p.getPID(), new HashMap<>());
-            nextIDs.put(p.getPID(), new AtomicLong(1)); // by default, first message is '1'
+            nextIDs.put(p.getPID(), (long) 1); // by default, first message is '1'
         }
 
-        Subject<MessageContent> subject = PublishSubject.create();
+        Subject<DAPacket> subject = PublishSubject.create();
 
-        RxSocket<MessageContent> socket = new RxSocket<>(subject);
+        RxSocket<DAPacket> socket = new RxSocket<>(subject);
 
-        Subject<MessageContent> intOut = subject;
-        Observable<MessageContent> intIn = socket.downPipe;
-        Observable<MessageContent> extIn = subSocket.upPipe;
-        Subject<MessageContent> extOut = subSocket.downPipe;
+        Subject<DAPacket> intOut = subject;
+        Observable<DAPacket> intIn = socket.downPipe;
+        Observable<DAPacket> extIn = subSocket.upPipe;
+        Subject<DAPacket> extOut = subSocket.downPipe;
 
         intIn.subscribe(pkt -> {
             extOut.onNext(pkt);
@@ -51,34 +50,24 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<MessageContent, Messa
         });
 
         extIn.subscribe(pkt -> {
-            Long seq = pkt.getSeq().get();
-            Long remotePID = pkt.getPID();
-            AtomicLong nextId = nextIDs.get(remotePID);
-            Map<Long, MessageContent> pendingMessages = messages.get(remotePID);
+            Long seq = pkt.getContent().getSeq().get();
+            Long remotePID = pkt.getContent().getPID();
 
-            if (nextId.get() == seq) { // In this case, we can directly deliver
-                intOut.onNext(pkt);
-                nextId.set(seq + 1);
-
-                // If this "unlocks" previously pending messages, we can deliver them
-                synchronized (nextId) {
-                    while (pendingMessages.containsKey(nextId.get())) {
-                        // deliver (and remove from pending)
-                        intOut.onNext(pendingMessages.get(nextId.get()));
-                        pendingMessages.remove(nextId.get());
-                        // update nextId
-                        nextId.set(nextId.get() + 1);
-                    }
-                }
-            } else if (nextId.get() > seq) {
+            if (nextIDs.get(remotePID) > seq) {
                 // already received this sequence number
                 throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer");
-            } else {
-                // The message can't be delivered yet, so we'll add it to pending
-                synchronized (nextId) {
-                    pendingMessages.put(seq, pkt);
-                }
             }
+
+            Map<Long, DAPacket> remoteMessages = messages.get(remotePID);
+            remoteMessages.put(seq, pkt);
+
+            while (remoteMessages.containsKey(nextIDs.get(remotePID))) {
+                // deliver
+                intOut.onNext(remoteMessages.get(nextIDs.get(remotePID)));
+                // update nextID
+                nextIDs.put(remotePID, nextIDs.get(remotePID) + 1);
+            }
+
         }, error -> {
             System.out.println("error while receiving message from exteriror at FIFOB: ");
             error.printStackTrace();
