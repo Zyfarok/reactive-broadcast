@@ -12,7 +12,6 @@ import io.reactivex.subjects.PublishSubject;
 
 import java.net.SocketAddress;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, MessageContent> {
 
@@ -34,21 +33,19 @@ public class UniformReliableBroadcastLayer extends RxLayer<DAPacket, MessageCont
      * Assumes subSocket is a BestEffortBroadcast
      */
     public RxSocket<MessageContent> stackOn(RxSocket<DAPacket> subSocket) {
+        Observable<GroupedObservable<MessageContent, DAPacket>> groupedAcks = subSocket.upPipe.groupBy(DAPacket::getContent).replay(1).autoConnect();
+
         PublishSubject<MessageContent> delivered = PublishSubject.create();
 
         RxSocket<MessageContent> socket = new RxSocket<>(delivered);
 
-        Observable<GroupedObservable<MessageContent, DAPacket>> groupedAcks = subSocket.upPipe.groupBy(DAPacket::getContent);
+        Observable<MessageContent> pending = groupedAcks.map(o -> o.getKey()).mergeWith(socket.downPipe).distinct().share();
 
-        groupedAcks.forEach(o -> {
-            AtomicInteger ackCount = new AtomicInteger(amountOfRequiredAcksFromOthersToDeliver - 1);
-            o.forEach(x -> {
-                if (ackCount.getAndDecrement() == 0)
-                    delivered.onNext(x.getContent());
-            });
-        });
+        pending.flatMap(mc ->
+                groupedAcks.filter(o -> o.getKey().equals(mc)).flatMap(o -> o).skip(amountOfRequiredAcksFromOthersToDeliver - 1).take(1)
+        ).map(DAPacket::getContent).subscribe(delivered);
 
-        socket.downPipe.map(mc -> new DAPacket(null, mc)).subscribe(subSocket.downPipe);
+        pending.map(mc -> new DAPacket(null, mc)).subscribe(subSocket.downPipe);
 
         return socket;
     }
