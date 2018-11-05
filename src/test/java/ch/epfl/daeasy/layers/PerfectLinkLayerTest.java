@@ -50,7 +50,7 @@ public class PerfectLinkLayerTest {
                 .map(x -> x.getContent().toString()).take(msgSet.size()).test();
 
         //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(1, MILLISECONDS)
+        Observable.interval(10, MILLISECONDS)
                 .zipWith(contents, (a, b) -> b)
                 .map(c -> new DAPacket(address2,c))
                 .forEach(socket1.downPipe::onNext);
@@ -103,7 +103,7 @@ public class PerfectLinkLayerTest {
                 .map(x -> x.getContent().toString()).take(msgSetTo3.size()).test();
 
         // Send all packets
-        Observable.interval(1, MILLISECONDS)
+        Observable.interval(10, MILLISECONDS)
                 .zipWith(packets, (a, b) -> b)
                 .forEach(socket1.downPipe::onNext);
 
@@ -115,71 +115,6 @@ public class PerfectLinkLayerTest {
         test3.awaitDone(5, TimeUnit.SECONDS)
                 .assertValueCount(msgSetTo3.size())
                 .assertValueSet(msgSetTo3);
-    }
-
-
-    @Test
-    public void perfectLinkStopsSendingWhenAcked() throws InterruptedException {
-        RxBadRouter router = new RxBadRouter(0.0, 0.0, 0, MILLISECONDS);
-
-        SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
-        SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
-
-        RxSocket<DAPacket> subSocket1 = router.buildSocket(address1).scheduleOn(Schedulers.trampoline())
-                .convertPipes(daConverter);
-        RxSocket<DAPacket> subSocket2 = router.buildSocket(address2).scheduleOn(Schedulers.trampoline())
-                .convertPipes(daConverter);
-
-        RxSocket<DAPacket> socket1 = subSocket1.stack(new PerfectLinkLayer())
-                .scheduleOn(Schedulers.trampoline());
-        RxSocket<DAPacket> socket2 = subSocket2.stackGroupedBy(DAPacket::getPeer, new PerfectLinkLayer())
-                .scheduleOn(Schedulers.trampoline());
-
-        List<MessageContent> contents1To2 = IntStream.range(0,100)
-                .mapToObj(x -> MessageContent.Message(x, 100+x)).collect(Collectors.toList());
-        Set<String> msgSet1To2 = contents1To2.stream().map(MessageContent::toString).collect(Collectors.toSet());
-
-        List<MessageContent> contents2To1 = IntStream.range(100,200)
-                .mapToObj(x -> MessageContent.Message(x, 100+x)).collect(Collectors.toList());
-        Set<String> msgSet2To1 = contents2To1.stream().map(MessageContent::toString).collect(Collectors.toSet());
-
-        // Create TestObservers
-        TestObserver<String> test1 = socket2.upPipe
-                .map(x -> x.getContent().toString()).take(msgSet1To2.size()).test();
-        TestObserver<String> test2 = socket1.upPipe
-                .map(x -> x.getContent().toString()).take(msgSet2To1.size()).test();
-
-        //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(1, MILLISECONDS)
-                .zipWith(contents1To2, (a, b) -> b)
-                .map(c -> new DAPacket(address2,c))
-                .forEach(socket1.downPipe::onNext);
-
-        //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(1, MILLISECONDS)
-                .zipWith(contents2To1, (a, b) -> b)
-                .map(c -> new DAPacket(address1,c))
-                .forEach(socket2.downPipe::onNext);
-
-        test1.awaitDone(10, TimeUnit.SECONDS)
-                .assertValueCount(msgSet1To2.size())
-                .assertValueSet(msgSet1To2);
-
-        test2.awaitDone(5, TimeUnit.SECONDS)
-                .assertValueCount(msgSet2To1.size())
-                .assertValueSet(msgSet2To1);
-
-        Thread.sleep(50);
-
-        test1 = subSocket1.upPipe
-                .map(x -> x.getContent().toString()).take(1).test();
-        test2 = subSocket2.upPipe
-                .map(x -> x.getContent().toString()).take(1).test();
-
-        test1.awaitDone(1, TimeUnit.SECONDS)
-                .assertValueCount(0).assertNotComplete();
-        test2.assertValueCount(0).assertNotComplete();
-
     }
 
 }
