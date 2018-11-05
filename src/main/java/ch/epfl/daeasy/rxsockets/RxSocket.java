@@ -17,7 +17,7 @@ public class RxSocket<Top> implements RxStack<Top> {
     }
 
     public RxSocket(Observable<Top> up, PublishSubject<Top> down) {
-        this.upPipe = up;
+        this.upPipe = up.share();
         this.downPipe = down;
     }
 
