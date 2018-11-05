@@ -34,7 +34,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
     static List<Configuration> cfgs;
     static List<SocketAddress> addrs;
-    static List<RxSocket<DAPacket>> sockets;
+    static List<RxSocket<MessageContent>> sockets;
     static RxBadRouter router;
 
     @Before
@@ -43,7 +43,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         List<Configuration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
-        List<RxSocket<DAPacket>> sockets = new ArrayList<>();
+        List<RxSocket<MessageContent>> sockets = new ArrayList<>();
 
         try {
             for (int i = 0; i < 5; i++) {
@@ -57,7 +57,7 @@ public class FirstInFirstOutBroadcastLayerTest {
                         .convertPipes(daConverter)
                         .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
 
-                final RxLayer<DatagramPacket, DAPacket> fifo = perfectLinks
+                final RxLayer<DatagramPacket, MessageContent> fifo = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)))
                         .stack(new UniformReliableBroadcastLayer(cfgs.get(i)))
                         .stack(new FirstInFirstOutBroadcastLayer(cfgs.get(i)));
@@ -86,13 +86,13 @@ public class FirstInFirstOutBroadcastLayerTest {
             List<String> msgList = contents.stream().map(MessageContent::toString).collect(Collectors.toList());
 
             // Create TestObservers
-            TestObserver<String> test2 = sockets.get(1).upPipe.map(x -> x.getContent().toString()).take(msgList.size())
+            TestObserver<String> test2 = sockets.get(1).upPipe.map(x -> x.toString()).take(msgList.size())
                     .test();
-            TestObserver<String> test3 = sockets.get(2).upPipe.map(x -> x.getContent().toString()).take(msgList.size())
+            TestObserver<String> test3 = sockets.get(2).upPipe.map(x -> x.toString()).take(msgList.size())
                     .test();
 
             Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents, (a, b) -> b)
-                    .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
+                    .forEach(sockets.get(0).downPipe::onNext);
 
             test2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList.size()).assertValueSequence(msgList);
             test3.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList.size()).assertValueSequence(msgList);
@@ -117,21 +117,21 @@ public class FirstInFirstOutBroadcastLayerTest {
                     .collect(Collectors.toList());
             List<String> msgList2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toList());
 
-            Observable<DAPacket> p5socketTest = sockets.get(4).upPipe.share();
+            Observable<MessageContent> p5socketTest = sockets.get(4).upPipe.share();
 
             // Create TestObservers
-            TestObserver<String> testfromP1 = p5socketTest.filter(x -> x.getContent().getPID() == 1)
-                    .map(x -> x.getContent().toString()).take(msgList1.size()).test();
-            TestObserver<String> testfromP2 = p5socketTest.filter(x -> x.getContent().getPID() == 2)
-                    .map(x -> x.getContent().toString()).take(msgList2.size()).test();
+            TestObserver<String> testfromP1 = p5socketTest.filter(x -> x.getPID() == 1)
+                    .map(x -> x.toString()).take(msgList1.size()).test();
+            TestObserver<String> testfromP2 = p5socketTest.filter(x -> x.getPID() == 2)
+                    .map(x -> x.toString()).take(msgList2.size()).test();
 
             Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
-                    .map(c -> new DAPacket(addrs.get(0), c)).forEach(sockets.get(0).downPipe::onNext);
+                    .forEach(sockets.get(0).downPipe::onNext);
             Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
-                    .map(c -> new DAPacket(addrs.get(1), c)).forEach(sockets.get(0).downPipe::onNext);
+                    .forEach(sockets.get(0).downPipe::onNext);
 
             // P5 should have received every message from P1 in order
-            testfromP1.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
+            testfromP1.awaitDone(20, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
             // P5 should have received every message from P2 in order
             testfromP2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList2.size()).assertValueSequence(msgList2);
         } catch (Exception e) {
