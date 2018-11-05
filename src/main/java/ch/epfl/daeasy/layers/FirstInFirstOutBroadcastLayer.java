@@ -61,7 +61,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<MessageContent, Messa
                 nextId.set(seq + 1);
 
                 // If this "unlocks" previously pending messages, we can deliver them
-                synchronized (nextId) {
+                synchronized (pendingMessages) {
                     while (pendingMessages.containsKey(nextId.get())) {
                         // deliver (and remove from pending)
                         intOut.onNext(pendingMessages.get(nextId.get()));
@@ -75,7 +75,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<MessageContent, Messa
                 throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer");
             } else {
                 // The message can't be delivered yet, so we'll add it to pending
-                synchronized (nextId) {
+                synchronized (pendingMessages) {
                     pendingMessages.put(seq, pkt);
                 }
             }
