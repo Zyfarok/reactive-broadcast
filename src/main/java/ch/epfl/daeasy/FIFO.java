@@ -44,16 +44,16 @@ public class FIFO {
 		// add the best effort broadcast layer
 		RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg));
 		// add the best effort broadcast layer
-		RxSocket<MessageContent> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer(cfg));
+		RxSocket<DAPacket> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer(cfg));
 		// add the fifo broadcast layer
-		RxSocket<MessageContent> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer(cfg));
+		RxSocket<DAPacket> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer(cfg));
 
-		List<MessageContent> outMessages = new ArrayList<>();
+		List<DAPacket> outMessages = new ArrayList<>();
 		for (int i = 0; i < cfg.getNumberOfMessages(); i++) {
-			outMessages.add(MessageContent.Message(i + 1, p.getPID()));
+			outMessages.add(new DAPacket(p.address, MessageContent.Message(i + 1, p.getPID())));
 		}
 
-		Observable<MessageContent> messages = Observable.fromIterable(outMessages).delay(1, TimeUnit.SECONDS);
+		Observable<DAPacket> messages = Observable.fromIterable(outMessages).delay(1, TimeUnit.SECONDS);
 
 		try {
 			synchronized (activator) {
@@ -68,12 +68,12 @@ public class FIFO {
 
 		// logging
 		fifoSocket.upPipe.subscribe(
-				pkt -> Logging.log("d " + pkt.getPID() + " " + pkt.getSeq().get()), error -> {
+				pkt -> Logging.log("d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get()), error -> {
 					// System.out.println("handled error upPipe");
 					error.printStackTrace();
 				});
 
-		fifoSocket.downPipe.blockingSubscribe(pkt -> Logging.log("b " + pkt.getSeq().get()), error -> {
+		fifoSocket.downPipe.blockingSubscribe(pkt -> Logging.log("b " + pkt.getContent().getSeq().get()), error -> {
 			// System.out.println("handled error downPipe");
 			error.printStackTrace();
 		});
