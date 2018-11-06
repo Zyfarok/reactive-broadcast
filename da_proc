@@ -1,2 +1,2 @@
 #!/bin/sh
-java -jar DaProject-all-*.jar $1 $2
+java -jar DaProject-all-*.jar $1 $2 $3

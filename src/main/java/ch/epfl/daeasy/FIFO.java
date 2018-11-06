@@ -30,7 +30,7 @@ import javax.security.auth.Subject;
 
 public class FIFO {
 
-    public static void run(FIFOConfiguration cfg, Process p, Object activator) throws SocketException {
+    public static void run(FIFOConfiguration cfg, Process p, Object activator, int m) throws SocketException {
         Logging.debug(p.address.toString());
         // DatagramSocket socket = new DatagramSocket(p.address);
         DatagramSocket socket = new DatagramSocket(p.address);
@@ -42,9 +42,8 @@ public class FIFO {
         RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer();
         // add the perfect link layers
         RxSocket<DAPacket> plSocket = converterSocket.scheduleOn(Schedulers.trampoline())
-                //.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
-                .stack(perfectLinkLayer)
-                .scheduleOn(Schedulers.trampoline());
+                // .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
+                .stack(perfectLinkLayer).scheduleOn(Schedulers.trampoline());
         // add the best effort broadcast layer
         RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg));
         // add the best effort broadcast layer
@@ -53,7 +52,7 @@ public class FIFO {
         RxSocket<DAPacket> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer(cfg));
 
         List<DAPacket> outMessages = new ArrayList<>();
-        for (int i = 0; i < cfg.getNumberOfMessages(); i++) {
+        for (int i = 0; i < m; i++) {
             outMessages.add(new DAPacket(p.address, MessageContent.Message(i + 1, p.getPID())));
         }
 
@@ -66,7 +65,7 @@ public class FIFO {
             System.exit(-1);
         }
 
-        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, m) -> m)
+        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, msg) -> msg)
                 .subscribe(fifoSocket.downPipe);
 
         // logging

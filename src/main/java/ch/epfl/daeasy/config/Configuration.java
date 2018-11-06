@@ -54,7 +54,7 @@ public abstract class Configuration {
 
 		if (lineCount == 2 * n + 1) {
 			return Mode.LCB;
-		} else if (lineCount == n + 2) {
+		} else if (lineCount == n + 1) {
 			return Mode.FIFO;
 		} else {
 			throw new ConfigurationException("configuration mode not handled");
