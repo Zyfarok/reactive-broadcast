@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import ch.epfl.daeasy.rxsockets.RxUDPSocket;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,8 +68,8 @@ public class UniformReliableBroadcastLayerTest {
 
                 final RxLayer<DatagramPacket, DAPacket> urb = beb.stack(new UniformReliableBroadcastLayer(cfgs.get(i)));
 
-                final RxClosableSocket<DatagramPacket> closable = RxClosableSocket
-                        .from(router.buildSocket(addrs.get(i)));
+                final RxClosableSocket<DatagramPacket> closable = router.buildSocket(addrs.get(i)).toClosable();
+                //final RxClosableSocket<DatagramPacket> closable = new RxUDPSocket(addrs.get(i)).toClosable();
                 sockets.add(closable.stack(urb));
                 closables.add(closable);
             }
@@ -174,12 +175,12 @@ public class UniformReliableBroadcastLayerTest {
         closables.get(3).open();
         closables.get(4).open();
 
-        List<MessageContent> contents1 = IntStream.range(0, 7).mapToObj(x -> MessageContent.Message(x, 3))
+        List<MessageContent> contents1 = IntStream.range(0, 77).mapToObj(x -> MessageContent.Message(x, 3))
                 .collect(Collectors.toList());
         Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
 
-        List<MessageContent> contents2 = IntStream.range(0, 13).mapToObj(x -> MessageContent.Message(x, 4))
+        List<MessageContent> contents2 = IntStream.range(0, 113).mapToObj(x -> MessageContent.Message(x, 4))
                 .collect(Collectors.toList());
         Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
@@ -207,11 +208,11 @@ public class UniformReliableBroadcastLayerTest {
 
         Thread.sleep(500);
 
-        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
+        Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(2).downPipe::onNext);
 
 
-        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+        Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(3).downPipe::onNext);
 
         Thread.sleep(3000);

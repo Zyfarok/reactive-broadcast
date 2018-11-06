@@ -159,12 +159,12 @@ public class FirstInFirstOutBroadcastLayerTest {
         closables.get(3).open();
         closables.get(4).open();
 
-        List<MessageContent> contents1 = IntStream.range(0, 7).mapToObj(x -> MessageContent.Message(x, 3))
+        List<MessageContent> contents1 = IntStream.range(1, 67).mapToObj(x -> MessageContent.Message(x, 3))
                 .collect(Collectors.toList());
         Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
 
-        List<MessageContent> contents2 = IntStream.range(0, 13).mapToObj(x -> MessageContent.Message(x, 4))
+        List<MessageContent> contents2 = IntStream.range(1, 103).mapToObj(x -> MessageContent.Message(x, 4))
                 .collect(Collectors.toList());
         Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
@@ -192,11 +192,11 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         Thread.sleep(500);
 
-        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
+        Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(2).downPipe::onNext);
 
 
-        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+        Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(3).downPipe::onNext);
 
         Thread.sleep(3000);
@@ -211,7 +211,7 @@ public class FirstInFirstOutBroadcastLayerTest {
         Thread.sleep(500);
         closables.get(2).open();
 
-        Thread.sleep(3000);
+        Thread.sleep(6000);
 
         test1.assertValueCount(0);
         test2.assertValueCount(0);
