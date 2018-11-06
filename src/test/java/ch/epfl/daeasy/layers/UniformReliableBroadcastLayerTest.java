@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +58,9 @@ public class UniformReliableBroadcastLayerTest {
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter)
-                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        //.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        .stack(perfectLinkLayer);
+
 
                 final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)));
@@ -171,12 +174,12 @@ public class UniformReliableBroadcastLayerTest {
         closables.get(3).open();
         closables.get(4).open();
 
-        List<MessageContent> contents1 = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 3))
+        List<MessageContent> contents1 = IntStream.range(0, 7).mapToObj(x -> MessageContent.Message(x, 3))
                 .collect(Collectors.toList());
         Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
 
-        List<MessageContent> contents2 = IntStream.range(0, 10).mapToObj(x -> MessageContent.Message(x, 4))
+        List<MessageContent> contents2 = IntStream.range(0, 13).mapToObj(x -> MessageContent.Message(x, 4))
                 .collect(Collectors.toList());
         Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
@@ -208,7 +211,7 @@ public class UniformReliableBroadcastLayerTest {
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(2).downPipe::onNext);
 
 
-        Observable.interval(43, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+        Observable.interval(50, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
                 .map(c -> new DAPacket(null, c)).forEach(sockets.get(3).downPipe::onNext);
 
         Thread.sleep(3000);
@@ -228,11 +231,21 @@ public class UniformReliableBroadcastLayerTest {
         test1.assertValueCount(0);
         test2.assertValueCount(0);
         test3.assertValueCount(0);
+        test4.assertValueCount(msgSet2.size()).assertValueSet(msgSet2);
         test5.assertValueCount(0);
 
-        test4.assertValueCount(msgSet2.size()).assertValueSet(msgSet2);
+        Thread.sleep(3000);
 
-        //Thread.sleep(5000);
+        closables.get(1).open();
+
+        Thread.sleep(3000);
+        Set<String> totalSet = Stream.concat(msgSet1.stream(), msgSet2.stream()).collect(Collectors.toSet());
+
+        test1.assertValueCount(0);
+        test2.assertValueCount(totalSet.size()).assertValueSet(totalSet);
+        test3.assertValueCount(totalSet.size()).assertValueSet(totalSet);
+        test4.assertValueCount(totalSet.size()).assertValueSet(totalSet);
+        test5.assertValueCount(0);
 
     }
 }

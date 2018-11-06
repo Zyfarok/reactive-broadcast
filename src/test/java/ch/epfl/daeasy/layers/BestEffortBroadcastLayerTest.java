@@ -60,7 +60,8 @@ public class BestEffortBroadcastLayerTest {
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter)
-                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        .stack(perfectLinkLayer);
+                        //.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
 
                 final RxLayer<DatagramPacket, DAPacket> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)));
