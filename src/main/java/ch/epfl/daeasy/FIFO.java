@@ -28,41 +28,40 @@ import javax.security.auth.Subject;
 
 public class FIFO {
 
-    public static void run(FIFOConfiguration cfg, Process p, Object activator) throws SocketException {
+    public static void run(FIFOConfiguration cfg, Process p, Object activator, int m) throws SocketException {
         String pid = "p" + cfg.id + " ";
         Logging.debug(p.address.toString());
         // DatagramSocket socket = new DatagramSocket(p.address);
         DatagramSocket socket = new DatagramSocket(p.address);
         // udp socket to rx socket
         RxSocket<DatagramPacket> udpRx = new RxUDPSocket(socket)
-                //.stack(new DebugLayer<>(pid + "UDPDeliver : ", pid + "UDPSend : "))
-                ;
+        // .stack(new DebugLayer<>(pid + "UDPDeliver : ", pid + "UDPSend : "))
+        ;
         // adn the converter layer (DatagramPackets to and from DAPackets)
         RxSocket<DAPacket> converterSocket = udpRx.stack(new RxPipeConverterLayer<>(new DatagramPacketConverter()))
-                //.stack(new DebugLayer<>(pid + "PCDeliver : ", pid + "PCSend : "))
-                ;
+        // .stack(new DebugLayer<>(pid + "PCDeliver : ", pid + "PCSend : "))
+        ;
         // inner layer perfect link for each "link"
         RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer()
-                //.stack(new DebugLayer<>(pid + "PLDeliver : ", pid + "PLSend : "))
-                ;
+        // .stack(new DebugLayer<>(pid + "PLDeliver : ", pid + "PLSend : "))
+        ;
         // add the perfect link layers
-        RxSocket<DAPacket> plSocket = converterSocket//.scheduleOn(Schedulers.trampoline())
-                //.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
+        RxSocket<DAPacket> plSocket = converterSocket// .scheduleOn(Schedulers.trampoline())
+                // .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
                 .stack(perfectLinkLayer);
-                //.scheduleOn(Schedulers.trampoline());
+        // .scheduleOn(Schedulers.trampoline());
         // add the best effort broadcast layer
         RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg))
-                //.stack(new DebugLayer<>(pid + "BEBDeliver : ", pid + "BEBSend : "))
-                ;
+        // .stack(new DebugLayer<>(pid + "BEBDeliver : ", pid + "BEBSend : "))
+        ;
         // add the best effort broadcast layer
         RxSocket<DAPacket> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer(cfg))
-                //.stack(new DebugLayer<>(pid + "URBDeliver : ", pid + "URBSend : "))
-                ;
+        // .stack(new DebugLayer<>(pid + "URBDeliver : ", pid + "URBSend : "))
+        ;
         // add the fifo broadcast layer
         RxSocket<DAPacket> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer(cfg))
-                //.stack(new DebugLayer<>(pid + "FIFODeliver : ", pid + "FIFOSend : "))
-                ;
-
+        // .stack(new DebugLayer<>(pid + "FIFODeliver : ", pid + "FIFOSend : "))
+        ;
 
         // logging
         fifoSocket.upPipe.subscribe(
@@ -77,7 +76,7 @@ public class FIFO {
         });
 
         List<DAPacket> outMessages = new ArrayList<>();
-        for (int i = 0; i < cfg.getNumberOfMessages(); i++) {
+        for (int i = 0; i < m; i++) {
             outMessages.add(new DAPacket(p.address, MessageContent.Message(i + 1, p.getPID())));
         }
 
@@ -91,7 +90,7 @@ public class FIFO {
                 System.exit(-1);
             }
 
-            Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, m) -> m)
+            Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, msg) -> msg)
                     .subscribe(fifoSocket.downPipe);
         }
     }

@@ -22,12 +22,13 @@ public class Main {
 		// da_proc n membership [extra params...]
 
 		// arguments validation
-		if (args.length < 2) {
+		if (args.length < 3) {
 			throw new IllegalArgumentException("usage: da_proc n membership [extra params...]");
 		}
 
 		int n = Integer.parseInt(args[0]);
 		String membershipFilePath = args[1];
+		int m = Integer.parseInt(args[2]);
 
 		// read membership file
 		Configuration cfg;
@@ -55,7 +56,7 @@ public class Main {
 		try {
 			switch (cfg.getMode()) {
 			case FIFO:
-				FIFO.run((FIFOConfiguration) cfg, p, activator);
+				FIFO.run((FIFOConfiguration) cfg, p, activator, m);
 				break;
 			case LCB:
 				throw new UnsupportedOperationException("not yet implemented");

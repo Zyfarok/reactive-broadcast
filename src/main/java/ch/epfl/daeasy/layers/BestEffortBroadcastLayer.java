@@ -15,10 +15,7 @@ public class BestEffortBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
 
     public BestEffortBroadcastLayer(Configuration cfg) {
         this.processes = Observable.fromIterable(
-                cfg.processesByPID.values().stream()
-                        .filter(p -> p.getPID() != cfg.id)
-                        .collect(Collectors.toList())
-        );
+                cfg.processesByPID.values().stream().filter(p -> p.getPID() != cfg.id).collect(Collectors.toList()));
     }
 
     /*
