@@ -29,6 +29,8 @@ public class DAPacket {
     }
 
     public String toString() {
+        if(this.peer == null)
+            return this.content.toString() + " PEER: null";
         return this.content.toString() + " PEER: " + this.peer.toString();
     }
 
