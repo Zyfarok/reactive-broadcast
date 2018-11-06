@@ -21,12 +21,9 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
         // Incoming Messages
         Observable<DAPacket> messagesUp = bottomUp.filter(pkt -> pkt.getContent().isMessage()).share();
         // Incoming ACK
-        Observable<DAPacket> acksUp = bottomUp.filter(pkt -> pkt.getContent().isACK());
+        Observable<DAPacket> acksUp = bottomUp.filter(pkt -> pkt.getContent().isACK()).share();
 
         RxSocket<DAPacket> socket = new RxSocket<>(messagesUp.distinct());
-
-        // Transform ack messages to simple long stream
-        Observable<Long> acks = acksUp.map(ack -> ack.getContent().getAck().get()).share();
 
         // Send ACK for all received messages
         messagesUp.map(msg -> new DAPacket(msg.getPeer(), MessageContent.ackFromMessage(msg.getContent())))
@@ -37,7 +34,11 @@ public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
             Long id = p.getContent().getSeq().get();
             return Observable.just(p)
                             .repeatWhen(completed -> completed.delay(50, TimeUnit.MILLISECONDS))
-                            .takeUntil(acks.filter(a -> a.equals(id)));
+                            .takeUntil(acksUp
+                                    .filter(a -> a.getContent().getAck().get().equals(id))
+                                    .filter(a -> a.getContent().getPID() == p.getContent().getPID())
+                                    .filter(a -> a.getPeer().equals(p.getPeer()))
+                            );
         }).flatMap(o -> o).subscribe(subSocket.downPipe);
 
         return socket;
