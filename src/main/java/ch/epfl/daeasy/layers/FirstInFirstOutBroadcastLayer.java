@@ -71,7 +71,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                 }
             } else if (nextId.get() > seq) {
                 // already received this sequence number
-                throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer");
+                throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer :" + nextId.get() + " > " + pkt.getContent().toString());
             } else {
                 // The message can't be delivered yet, so we'll add it to pending
                 synchronized (pendingMessages) {
