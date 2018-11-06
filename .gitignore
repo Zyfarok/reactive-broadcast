@@ -9,3 +9,5 @@ build/
 membership
 
 /*.jar
+*.out
+expected
