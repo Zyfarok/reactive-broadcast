@@ -29,6 +29,7 @@ import javax.security.auth.Subject;
 public class FIFO {
 
     public static void run(FIFOConfiguration cfg, Process p, Object activator, int m) throws SocketException {
+        System.setProperty("rx2.buffer-size","1024");
         String pid = "p" + cfg.id + " ";
         Logging.debug(p.address.toString());
         // DatagramSocket socket = new DatagramSocket(p.address);
@@ -64,16 +65,13 @@ public class FIFO {
         ;
 
         // logging
-        fifoSocket.upPipe.subscribe(
-                pkt -> Logging.log("d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get()), error -> {
-                    // System.out.println("handled error upPipe");
+        fifoSocket.upPipe.map(pkt -> "d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get())
+                .mergeWith(
+                        fifoSocket.downPipe.map(pkt -> "b " + pkt.getContent().getSeq().get()))
+                .subscribe(msg -> Logging.log(msg), error -> {
+                    // System.out.println("handled error");
                     error.printStackTrace();
                 });
-
-        fifoSocket.downPipe.subscribe(pkt -> Logging.log("b " + pkt.getContent().getSeq().get()), error -> {
-            // System.out.println("handled error downPipe");
-            error.printStackTrace();
-        });
 
         List<DAPacket> outMessages = new ArrayList<>();
         for (int i = 0; i < m; i++) {
@@ -90,7 +88,7 @@ public class FIFO {
                 System.exit(-1);
             }
 
-            Observable.interval(5, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, msg) -> msg)
+            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, msg) -> msg)
                     .subscribe(fifoSocket.downPipe);
         }
     }
