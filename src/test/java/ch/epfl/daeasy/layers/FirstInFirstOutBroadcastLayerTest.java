@@ -58,7 +58,8 @@ public class FirstInFirstOutBroadcastLayerTest {
                 final DatagramPacketConverter daConverter = new DatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter)
-                        .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        //.stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer));
+                        .stack(perfectLinkLayer);
 
                 final RxLayer<DatagramPacket, DAPacket> fifo = perfectLinks
                         .stack(new BestEffortBroadcastLayer(cfgs.get(i)))
