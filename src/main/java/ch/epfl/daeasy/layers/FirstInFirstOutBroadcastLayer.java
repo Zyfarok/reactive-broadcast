@@ -9,6 +9,7 @@ import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
+import ch.epfl.daeasy.logging.Logging;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
@@ -45,7 +46,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         intIn.subscribe(pkt -> {
             extOut.onNext(pkt);
         }, error -> {
-            System.out.println("error while receiving message from interior at FIFOB: ");
+            Logging.debug("error while receiving message from interior at FIFOB: ");
             error.printStackTrace();
         });
 
@@ -71,7 +72,8 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                 }
             } else if (nextId.get() > seq) {
                 // already received this sequence number
-                throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer :" + nextId.get() + " > " + pkt.getContent().toString());
+                throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer :"
+                        + nextId.get() + " > " + pkt.getContent().toString());
             } else {
                 // The message can't be delivered yet, so we'll add it to pending
                 synchronized (pendingMessages) {
@@ -79,7 +81,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                 }
             }
         }, error -> {
-            System.out.println("error while receiving message from exteriror at FIFOB: ");
+            Logging.debug("error while receiving message from exteriror at FIFOB: ");
             error.printStackTrace();
         });
 

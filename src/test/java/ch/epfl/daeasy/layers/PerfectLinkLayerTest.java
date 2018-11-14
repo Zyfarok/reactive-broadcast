@@ -25,96 +25,78 @@ import java.util.stream.Stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class PerfectLinkLayerTest {
-    private final DatagramPacketConverter daConverter = new DatagramPacketConverter();
-    private final RxLayer<DatagramPacket,DAPacket> layers = new RxNil<DatagramPacket>()
-            .scheduleOn(Schedulers.trampoline())
-            .convertPipes(daConverter)
-            .stack(new PerfectLinkLayer())
-            .scheduleOn(Schedulers.trampoline());
-    @Test
-    public void perfectLinkEndsUpSendingPacketsAndRemoveDuplicates() {
-        RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
+        private final DatagramPacketConverter daConverter = new DatagramPacketConverter();
+        private final RxLayer<DatagramPacket, DAPacket> layers = new RxNil<DatagramPacket>()
+                        .scheduleOn(Schedulers.trampoline()).convertPipes(daConverter).stack(new PerfectLinkLayer())
+                        .scheduleOn(Schedulers.trampoline());
 
-        SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
-        SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
+        @Test
+        public void perfectLinkEndsUpSendingPacketsAndRemoveDuplicates() {
+                RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
 
-        RxSocket<DAPacket> socket1 = router.buildSocket(address1).stack(layers);
-        RxSocket<DAPacket> socket2 = router.buildSocket(address2).stack(layers);
+                SocketAddress address1 = new InetSocketAddress("127.0.0.1", 1000);
+                SocketAddress address2 = new InetSocketAddress("127.0.0.1", 1001);
 
-        List<MessageContent> contents = IntStream.range(0,100)
-                .mapToObj(x -> MessageContent.Message(x, 100+x)).collect(Collectors.toList());
-        Set<String> msgSet = contents.stream().map(MessageContent::toString).collect(Collectors.toSet());
+                RxSocket<DAPacket> socket1 = router.buildSocket(address1).stack(layers);
+                RxSocket<DAPacket> socket2 = router.buildSocket(address2).stack(layers);
 
-        // Create TestObservers
-        TestObserver<String> test = socket2.upPipe
-                .map(x -> x.getContent().toString()).take(msgSet.size()).test();
+                List<MessageContent> contents = IntStream.range(0, 100)
+                                .mapToObj(x -> MessageContent.Message(x, 100 + x)).collect(Collectors.toList());
+                Set<String> msgSet = contents.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
-        //socket2.upPipe.forEach(x -> System.out.println(x.getContent().toString()));
-        Observable.interval(1, MILLISECONDS)
-                .zipWith(contents, (a, b) -> b)
-                .map(c -> new DAPacket(address2,c))
-                .forEach(socket1.downPipe::onNext);
+                // Create TestObservers
+                TestObserver<String> test = socket2.upPipe.map(x -> x.getContent().toString()).take(msgSet.size())
+                                .test();
+                Observable.interval(1, MILLISECONDS).zipWith(contents, (a, b) -> b).map(c -> new DAPacket(address2, c))
+                                .forEach(socket1.downPipe::onNext);
 
-        test.awaitDone(10, TimeUnit.SECONDS)
-                .assertValueCount(msgSet.size())
-                .assertValueSet(msgSet);
-    }
+                test.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSet.size()).assertValueSet(msgSet);
+        }
 
-    private final RxLayer<DatagramPacket,DAPacket> groupedLayers = new RxNil<DatagramPacket>()
-            .scheduleOn(Schedulers.trampoline())
-            .convertPipes(daConverter)
-            .stackGroupedBy(DAPacket::getPeer, new PerfectLinkLayer())
-            .scheduleOn(Schedulers.trampoline());
+        private final RxLayer<DatagramPacket, DAPacket> groupedLayers = new RxNil<DatagramPacket>()
+                        .scheduleOn(Schedulers.trampoline()).convertPipes(daConverter)
+                        .stackGroupedBy(DAPacket::getPeer, new PerfectLinkLayer()).scheduleOn(Schedulers.trampoline());
 
-    @Test
-    public void perfectLinkWithGroupedLayers() {
-        RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
+        @Test
+        public void perfectLinkWithGroupedLayers() {
+                RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
 
-        SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
-        SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
-        SocketAddress address3 = new InetSocketAddress("127.0.0.1",1002);
+                SocketAddress address1 = new InetSocketAddress("127.0.0.1", 1000);
+                SocketAddress address2 = new InetSocketAddress("127.0.0.1", 1001);
+                SocketAddress address3 = new InetSocketAddress("127.0.0.1", 1002);
 
-        RxSocket<DAPacket> socket1 = router.buildSocket(address1).stack(groupedLayers);
-        RxSocket<DAPacket> socket2 = router.buildSocket(address2).stack(groupedLayers);
-        RxSocket<DAPacket> socket3 = router.buildSocket(address3).stack(groupedLayers);
+                RxSocket<DAPacket> socket1 = router.buildSocket(address1).stack(groupedLayers);
+                RxSocket<DAPacket> socket2 = router.buildSocket(address2).stack(groupedLayers);
+                RxSocket<DAPacket> socket3 = router.buildSocket(address3).stack(groupedLayers);
 
+                List<Integer> allInts = IntStream.range(0, 200).boxed().collect(Collectors.toList());
 
-        List<Integer> allInts = IntStream.range(0,200).boxed().collect(Collectors.toList());
+                List<MessageContent> contentsTo2 = allInts.stream().filter(x -> x % 2 == 0)
+                                .map(x -> MessageContent.Message(x, 200 + x)).collect(Collectors.toList());
+                List<MessageContent> contentsTo3 = allInts.stream().filter(x -> x % 2 != 0)
+                                .map(x -> MessageContent.Message(x, 200 + x)).collect(Collectors.toList());
 
-        List<MessageContent> contentsTo2 = allInts.stream().filter(x -> x % 2 == 0)
-                .map(x -> MessageContent.Message(x, 200+x)).collect(Collectors.toList());
-        List<MessageContent> contentsTo3 = allInts.stream().filter(x -> x % 2 != 0)
-                .map(x -> MessageContent.Message(x, 200+x)).collect(Collectors.toList());
+                Set<String> msgSetTo2 = contentsTo2.stream().map(MessageContent::toString).collect(Collectors.toSet());
+                Set<String> msgSetTo3 = contentsTo3.stream().map(MessageContent::toString).collect(Collectors.toSet());
 
-        Set<String> msgSetTo2 = contentsTo2.stream()
-                .map(MessageContent::toString).collect(Collectors.toSet());
-        Set<String> msgSetTo3 = contentsTo3.stream()
-                .map(MessageContent::toString).collect(Collectors.toSet());
+                List<DAPacket> packets = Stream
+                                .concat(contentsTo2.stream().map(c -> new DAPacket(address2, c)),
+                                                contentsTo3.stream().map(c -> new DAPacket(address3, c)))
+                                .collect(Collectors.toList());
 
-        List<DAPacket> packets = Stream.concat(
-                contentsTo2.stream().map(c -> new DAPacket(address2, c)),
-                contentsTo3.stream().map(c -> new DAPacket(address3, c))
-        ).collect(Collectors.toList());
+                // Create TestObservers
+                TestObserver<String> test2 = socket2.upPipe.map(x -> x.getContent().toString()).take(msgSetTo2.size())
+                                .test();
+                TestObserver<String> test3 = socket3.upPipe.map(x -> x.getContent().toString()).take(msgSetTo3.size())
+                                .test();
 
-        // Create TestObservers
-        TestObserver<String> test2 = socket2.upPipe
-                .map(x -> x.getContent().toString()).take(msgSetTo2.size()).test();
-        TestObserver<String> test3 = socket3.upPipe
-                .map(x -> x.getContent().toString()).take(msgSetTo3.size()).test();
+                // Send all packets
+                Observable.interval(1, MILLISECONDS).zipWith(packets, (a, b) -> b).forEach(socket1.downPipe::onNext);
 
-        // Send all packets
-        Observable.interval(1, MILLISECONDS)
-                .zipWith(packets, (a, b) -> b)
-                .forEach(socket1.downPipe::onNext);
+                // Check that they all got their packets.
+                test2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgSetTo2.size()).assertValueSet(msgSetTo2);
 
-        // Check that they all got their packets.
-        test2.awaitDone(10, TimeUnit.SECONDS)
-                .assertValueCount(msgSetTo2.size())
-                .assertValueSet(msgSetTo2);
-
-        test3.awaitDone(5, TimeUnit.SECONDS)
-                .assertValueCount(msgSetTo3.size())
-                .assertValueSet(msgSetTo3);
-    }
+                test3.awaitDone(5, TimeUnit.SECONDS).assertValueCount(msgSetTo3.size()).assertValueSet(msgSetTo3);
+        }
 
 }

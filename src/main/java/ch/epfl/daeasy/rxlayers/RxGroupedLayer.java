@@ -19,14 +19,13 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
     }
 
     public static <Key, Bottom, Top> RxGroupedLayer<Key, Bottom, Top> create(Function<Bottom, Key> keyB,
-                                                                             Function<Top, Key> keyA,
-                                                                             RxLayer<Bottom, Top> innerLayer) {
-        return new RxGroupedLayer<>(keyB,keyA,innerLayer);
+            Function<Top, Key> keyA, RxLayer<Bottom, Top> innerLayer) {
+        return new RxGroupedLayer<>(keyB, keyA, innerLayer);
     }
 
     public static <Key, Bottom> RxGroupedLayer<Key, Bottom, Bottom> create(Function<Bottom, Key> key,
-                                                                           RxLayer<Bottom, Bottom> innerLayer) {
-        return create(key,key,innerLayer);
+            RxLayer<Bottom, Bottom> innerLayer) {
+        return create(key, key, innerLayer);
     }
 
     public RxSocket<Top> stackOn(RxSocket<Bottom> subSocket) {
@@ -36,24 +35,22 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
         RxSocket<Top> topSocket = new RxSocket<>(topUpPipeOut);
 
         // GroupBy upPipe input from subSocket
-        Observable<GroupedObservable<Key, Bottom>> groupedBottomUpPipesIn =
-                subSocket.upPipe.groupBy(keyB)
-                        .replay(1).autoConnect();
+        Observable<GroupedObservable<Key, Bottom>> groupedBottomUpPipesIn = subSocket.upPipe.groupBy(keyB).replay(1)
+                .autoConnect();
 
         // GroupBy downPipe input from topSocket
-        Observable<GroupedObservable<Key, Top>> groupedTopDownPipesIn =
-                topSocket.downPipe.groupBy(keyA)
-                        .replay(1).autoConnect();
+        Observable<GroupedObservable<Key, Top>> groupedTopDownPipesIn = topSocket.downPipe.groupBy(keyA).replay(1)
+                .autoConnect();
 
         // Create observable of keys to trigger socket creation.
         Observable<Key> keyObservable = groupedBottomUpPipesIn.map(GroupedObservable::getKey)
                 .mergeWith(groupedTopDownPipesIn.map(GroupedObservable::getKey)).distinct();
 
-        // TODO : Avoid potential OutOfMemory errors by handling disposables and avoiding "distinct" usage.
+        // TODO : Avoid potential OutOfMemory errors by handling disposables and
+        // avoiding "distinct" usage.
         // Create an inner socket for each key
-        //Observable<Disposable> disposables = keyObservable.map(key -> {
+        // Observable<Disposable> disposables = keyObservable.map(key -> {
         keyObservable.forEach(key -> {
-            //System.out.println("key: " + key + " found ! Creating inner socket...");
 
             // #### First step : Build inner subSocket
             // Setup an up subject but we don't feed it yet
@@ -78,7 +75,7 @@ public class RxGroupedLayer<Key, Bottom, Top> extends RxLayer<Bottom, Top> {
             Disposable d2 = groupedBottomUpPipesIn.filter(x -> x.getKey().equals(key)).take(1)
                     .forEach(x -> x.subscribe(innerBottomUpPipeIn));
 
-            //return new Disposable() {
+            // return new Disposable() {
             new Disposable() {
                 @Override
                 public void dispose() {
