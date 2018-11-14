@@ -28,10 +28,9 @@ import javax.security.auth.Subject;
 
 public class FIFO {
 
-    public static void run(FIFOConfiguration cfg, Process p, Object activator, int m) throws SocketException {
-        System.setProperty("rx2.buffer-size","1024");
+    public static void run(FIFOConfiguration cfg, Process p, Object activator) throws SocketException {
+        System.setProperty("rx2.buffer-size", "1024");
         String pid = "p" + cfg.id + " ";
-        Logging.debug(p.address.toString());
         // DatagramSocket socket = new DatagramSocket(p.address);
         DatagramSocket socket = new DatagramSocket(p.address);
         // udp socket to rx socket
@@ -66,15 +65,13 @@ public class FIFO {
 
         // logging
         fifoSocket.upPipe.map(pkt -> "d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get())
-                .mergeWith(
-                        fifoSocket.downPipe.map(pkt -> "b " + pkt.getContent().getSeq().get()))
+                .mergeWith(fifoSocket.downPipe.map(pkt -> "b " + pkt.getContent().getSeq().get()))
                 .subscribe(msg -> Logging.log(msg), error -> {
-                    // System.out.println("handled error");
                     error.printStackTrace();
                 });
 
         List<DAPacket> outMessages = new ArrayList<>();
-        for (int i = 0; i < m; i++) {
+        for (int i = 0; i < cfg.m; i++) {
             outMessages.add(new DAPacket(p.address, MessageContent.Message(i + 1, p.getPID())));
         }
 

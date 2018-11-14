@@ -9,16 +9,23 @@ import javax.naming.ConfigurationException;
 
 public class FIFOConfiguration extends Configuration {
 
+    final public int m;
+
     public Mode getMode() {
         return Mode.FIFO;
     }
 
-    public FIFOConfiguration(Integer id, String filepath)
+    public FIFOConfiguration(int pid, String filepath, int m)
             throws FileNotFoundException, IOException, ConfigurationException, IllegalArgumentException {
-        super(id, filepath);
+        super(pid, filepath);
+        this.m = m;
     }
 
     public String toString() {
-        return "FIFO " + super.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append("LCB Configuration ");
+        sb.append("(pid: " + this.id + " n: " + this.processesByAddress.size() + " m: " + this.m + ")");
+        sb.append(" with processes: \n" + this.processesToString());
+        return sb.toString();
     }
 }

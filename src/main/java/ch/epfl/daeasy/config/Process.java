@@ -1,7 +1,6 @@
 package ch.epfl.daeasy.config;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 public class Process {
     // id
@@ -24,6 +23,6 @@ public class Process {
 
     @Override
     public String toString() {
-        return new String("process " + this.i + " @" + this.identifier());
+        return new String("pid: " + this.i + " @:" + this.identifier());
     }
 }

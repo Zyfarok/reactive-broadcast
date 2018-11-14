@@ -24,18 +24,19 @@ public abstract class Configuration {
 
 	public abstract Mode getMode();
 
+	// return the mode of the program from the configuration
 	public static Mode getMode(String filepath) throws FileNotFoundException, IOException, ConfigurationException {
 		// distinguish mode by number of non empty lines
 		long lineCount = 0;
 		BufferedReader reader = new BufferedReader(new FileReader(filepath));
-		int n = -1;
+		int N = -1; // number of processes
 		try {
 			String sn = reader.readLine();
 			if (sn == null) {
 				reader.close();
 				throw new ConfigurationException("first line of configuration should be an integer");
 			}
-			n = Integer.parseInt(sn);
+			N = Integer.parseInt(sn);
 			lineCount += 1;
 
 			String l;
@@ -48,13 +49,20 @@ public abstract class Configuration {
 			reader.close();
 		}
 
-		if (n == -1) {
+		if (N == -1) {
 			throw new ConfigurationException("incorrect configuration");
 		}
 
-		if (lineCount == 2 * n + 1) {
+		if (lineCount == 2 * N + 1) {
+			// LCB configuration contains:
+			// 1 line specifying the number of processes N
+			// N lines of process addresses
+			// N lines of process dependencies
 			return Mode.LCB;
-		} else if (lineCount == n + 1) {
+		} else if (lineCount == N + 1) {
+			// FIFO configuration contains:
+			// 1 line specifying the number of processes N
+			// N lines of process addresses
 			return Mode.FIFO;
 		} else {
 			throw new ConfigurationException("configuration mode not handled");
@@ -109,9 +117,18 @@ public abstract class Configuration {
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("Membership ");
-		sb.append("#" + this.processesByPID.size());
+		sb.append("Configuration ");
+		sb.append("(pid: " + this.id + " n: " + this.processesByAddress.size() + ")");
 		sb.append(" with processes: \n");
+		for (Process p : this.processesByPID.values()) {
+			sb.append(p.toString());
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
+
+	protected String processesToString() {
+		StringBuilder sb = new StringBuilder();
 		for (Process p : this.processesByPID.values()) {
 			sb.append(p.toString());
 			sb.append("\n");
