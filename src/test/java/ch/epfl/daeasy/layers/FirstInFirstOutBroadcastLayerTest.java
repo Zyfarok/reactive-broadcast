@@ -50,7 +50,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         try {
             for (int i = 0; i < 5; i++) {
-                cfgs.add(new FIFOConfiguration(i + 1, "test/membership_fifo_test.txt"));
+                cfgs.add(new FIFOConfiguration(i + 1, "test/membership_FIFO_template.txt", 1));
                 addrs.add(new InetSocketAddress("127.0.0.1", 10001 + i));
 
                 RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer();
