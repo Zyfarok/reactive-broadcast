@@ -62,7 +62,7 @@ public class Main {
                     break;
                 case LCB:
                     Logging.debug("da_proc LCB " + p.toString() + " running");
-                    // TODO
+                    // TODO : Uncomment this
                     //LCB.run((LCBConfiguration) cfg, p, activator);
                     break;
                 default:
