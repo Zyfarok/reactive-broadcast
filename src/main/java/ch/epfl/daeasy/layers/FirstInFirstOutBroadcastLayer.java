@@ -23,6 +23,7 @@ public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends Rx
     public RxSocket<MC> stackOn(RxSocket<MC> subSocket) {
         Map<Long, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
 
+        // initialize data structures
         for(Integer pid : cfg.processesByPID.keySet()) {
             lastDelivered.put(pid.longValue(), BehaviorSubject.create());
             lastDelivered.get(pid.longValue()).onNext(0L);
