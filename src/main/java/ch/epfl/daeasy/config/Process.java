@@ -17,12 +17,10 @@ public class Process {
         return this.i;
     }
 
-    private String identifier() {
-        return String.format("%s", this.address.toString());
-    }
+    private String identifier() { return this.address.toString();}
 
     @Override
     public String toString() {
-        return new String("pid: " + this.i + " @:" + this.identifier());
+        return "pid: " + this.i + " @:" + this.identifier();
     }
 }
