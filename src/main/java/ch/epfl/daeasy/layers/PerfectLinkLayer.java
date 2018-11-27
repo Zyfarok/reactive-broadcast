@@ -1,43 +1,43 @@
 package ch.epfl.daeasy.layers;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import ch.epfl.daeasy.protocol.DAPacket;
 import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import io.reactivex.Observable;
-import io.reactivex.functions.Predicate;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
 
-public class PerfectLinkLayer extends RxLayer<DAPacket, DAPacket> {
+public class PerfectLinkLayer<MC extends MessageContent> extends RxLayer<DAPacket<MC>, DAPacket<MC>> {
+    private final Function<MC, MC> toAck;
 
-    public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
-        Observable<DAPacket> bottomUp = subSocket.upPipe.share();
+    public PerfectLinkLayer(Function<MC, MC> toAck){
+        this.toAck = toAck;
+    }
+
+    public RxSocket<DAPacket<MC>> stackOn(RxSocket<DAPacket<MC>> subSocket) {
+        Observable<DAPacket<MC>> bottomUp = subSocket.upPipe.share();
         // Incoming Messages
-        Observable<DAPacket> messagesUp = bottomUp.filter(pkt -> pkt.getContent().isMessage()).share();
+        Observable<DAPacket<MC>> messagesUp = bottomUp.filter(pkt -> pkt.content.isMessage()).share();
         // Incoming ACK
-        Observable<DAPacket> acksUp = bottomUp.filter(pkt -> pkt.getContent().isACK()).share();
+        Observable<DAPacket<MC>> acksUp = bottomUp.filter(pkt -> pkt.content.isAck()).share();
 
-        RxSocket<DAPacket> socket = new RxSocket<>(messagesUp.distinct());
+        RxSocket<DAPacket<MC>> socket = new RxSocket<>(messagesUp.distinct());
 
         // Send ACK for all received messages
-        messagesUp.map(msg -> new DAPacket(msg.getPeer(), MessageContent.ackFromMessage(msg.getContent())))
+        messagesUp.map(msg -> new DAPacket<>(msg.peer, toAck.apply(msg.content)))
                 .subscribe(subSocket.downPipe);
 
         // Replay down-going messages until acked
         socket.downPipe.map(p -> {
-            Long id = p.getContent().getSeq().get();
+            long id = p.content.seq;
             return Observable.just(p)
                             .repeatWhen(completed -> completed.delay(50, TimeUnit.MILLISECONDS))
                             .takeUntil(acksUp
-                                    .filter(a -> a.getContent().getAck().get().equals(id))
-                                    .filter(a -> a.getContent().getPID() == p.getContent().getPID())
-                                    .filter(a -> a.getPeer().equals(p.getPeer()))
+                                    .filter(a -> a.content.seq == id)
+                                    .filter(a -> a.content.pid == p.content.pid)
+                                    .filter(a -> a.peer.equals(p.peer))
                             );
         }).flatMap(o -> o).subscribe(subSocket.downPipe);
 

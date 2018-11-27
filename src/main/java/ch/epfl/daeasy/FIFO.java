@@ -6,6 +6,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.epfl.daeasy.config.FIFOConfiguration;
 import ch.epfl.daeasy.layers.*;
@@ -30,7 +31,7 @@ public class FIFO {
 
     public static void run(FIFOConfiguration cfg, Process p, Object activator) throws SocketException {
         System.setProperty("rx2.buffer-size", "1024");
-        String pid = "p" + cfg.id + " ";
+        //String pid = "p" + cfg.id + " ";
         // DatagramSocket socket = new DatagramSocket(p.address);
         DatagramSocket socket = new DatagramSocket(p.address);
         // udp socket to rx socket
@@ -38,42 +39,42 @@ public class FIFO {
         // .stack(new DebugLayer<>(pid + "UDPDeliver : ", pid + "UDPSend : "))
         ;
         // adn the converter layer (DatagramPackets to and from DAPackets)
-        RxSocket<DAPacket> converterSocket = udpRx.stack(new RxPipeConverterLayer<>(new DatagramPacketConverter()))
+        RxSocket<DAPacket<MessageContent>> converterSocket = udpRx.stack(new RxPipeConverterLayer<>(new DatagramPacketConverter()))
         // .stack(new DebugLayer<>(pid + "PCDeliver : ", pid + "PCSend : "))
         ;
         // inner layer perfect link for each "link"
-        RxLayer<DAPacket, DAPacket> perfectLinkLayer = new PerfectLinkLayer()
+        RxLayer<DAPacket<MessageContent>, DAPacket<MessageContent>> perfectLinkLayer =
+                new PerfectLinkLayer<>(MessageContent::toAck)
         // .stack(new DebugLayer<>(pid + "PLDeliver : ", pid + "PLSend : "))
         ;
         // add the perfect link layers
-        RxSocket<DAPacket> plSocket = converterSocket// .scheduleOn(Schedulers.trampoline())
+        RxSocket<DAPacket<MessageContent>> plSocket = converterSocket// .scheduleOn(Schedulers.trampoline())
                 // .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
                 .stack(perfectLinkLayer);
         // .scheduleOn(Schedulers.trampoline());
         // add the best effort broadcast layer
-        RxSocket<DAPacket> bebSocket = plSocket.stack(new BestEffortBroadcastLayer(cfg))
+        RxSocket<DAPacket<MessageContent>> bebSocket = plSocket.stack(new BestEffortBroadcastLayer<>(cfg))
         // .stack(new DebugLayer<>(pid + "BEBDeliver : ", pid + "BEBSend : "))
         ;
         // add the best effort broadcast layer
-        RxSocket<DAPacket> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer(cfg))
+        RxSocket<MessageContent> urbSocket =
+                bebSocket.stack(new UniformReliableBroadcastLayer<>(cfg))
         // .stack(new DebugLayer<>(pid + "URBDeliver : ", pid + "URBSend : "))
         ;
         // add the fifo broadcast layer
-        RxSocket<DAPacket> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer(cfg))
+        RxSocket<MessageContent> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer<>(cfg))
         // .stack(new DebugLayer<>(pid + "FIFODeliver : ", pid + "FIFOSend : "))
         ;
 
         // logging
-        fifoSocket.upPipe.map(pkt -> "d " + pkt.getContent().getPID() + " " + pkt.getContent().getSeq().get())
-                .mergeWith(fifoSocket.downPipe.map(pkt -> "b " + pkt.getContent().getSeq().get()))
-                .subscribe(msg -> Logging.log(msg), error -> {
-                    error.printStackTrace();
-                });
+        fifoSocket.upPipe.map(mc -> "d " + mc.pid + " " + mc.seq)
+                .mergeWith(fifoSocket.downPipe.map(pkt -> "b " + pkt.seq))
+                .subscribe(Logging::log, Throwable::printStackTrace);
 
-        List<DAPacket> outMessages = new ArrayList<>();
-        for (int i = 0; i < cfg.m; i++) {
-            outMessages.add(new DAPacket(p.address, MessageContent.Message(i + 1, p.getPID())));
-        }
+        AtomicInteger seq = new AtomicInteger(0);
+//        for (; i < cfg.m; i++) {
+//            outMessages.add(MessageContent.createMessage(p.getPID(), i + 1)));
+//        }
 
         while (true) {
             try {
@@ -85,8 +86,12 @@ public class FIFO {
                 System.exit(-1);
             }
 
-            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(outMessages, (i, msg) -> msg)
-                    .subscribe(fifoSocket.downPipe);
+            ;
+            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(
+                    Observable.range(0, cfg.m)
+                            .map(j -> MessageContent.createMessage(p.getPID(), seq.incrementAndGet())),
+                    (i, msg) -> msg
+            ).subscribe(fifoSocket.downPipe);
         }
     }
 }

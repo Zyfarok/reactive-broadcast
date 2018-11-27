@@ -62,7 +62,8 @@ public class Main {
 				break;
 			case LCB:
 				Logging.debug("da_proc LCB " + p.toString() + " running");
-				LCB.run((LCBConfiguration) cfg, p, activator);
+				// TODO
+				//LCB.run((LCBConfiguration) cfg, p, activator);
 				break;
 			default:
 				throw new UnsupportedOperationException("unsupported mode");
