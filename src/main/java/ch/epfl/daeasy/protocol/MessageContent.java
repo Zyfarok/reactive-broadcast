@@ -15,7 +15,7 @@ public class MessageContent {
     public final Optional<String> payload;
 
 	// json serializer/deserializer
-	private static Gson gson = new Gson();
+	protected static Gson gson = new Gson();
 
     protected MessageContent(long pid, long seq) {
         this.pid = pid;
@@ -55,7 +55,7 @@ public class MessageContent {
 	public MessageContent toAck() {
 	    assert this.isMessage();
 
-		return MessageContent.createAck(this.pid, this.seq);
+		return createAck(this.pid, this.seq);
 	}
 
 	public String serialize() {
@@ -74,11 +74,7 @@ public class MessageContent {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj == null) {
-			return false;
-		}
-
-		if (!MessageContent.class.isAssignableFrom(obj.getClass())) {
+		if (obj == null || obj.getClass() != getClass()) {
 			return false;
 		}
 

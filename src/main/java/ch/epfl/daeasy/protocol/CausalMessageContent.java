@@ -1,6 +1,9 @@
 package ch.epfl.daeasy.protocol;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonSyntaxException;
+
+import java.util.Objects;
 
 public class CausalMessageContent extends MessageContent {
     private static final ImmutableMap<Long, Long> empty = ImmutableMap.<Long, Long>builder().build();
@@ -37,4 +40,28 @@ public class CausalMessageContent extends MessageContent {
 
         return CausalMessageContent.createAck(this.pid, this.seq);
     }
+
+    public String serialize() {
+        return gson.toJson(this);
+    }
+
+    public static CausalMessageContent deserialize(String json) throws JsonSyntaxException {
+        return gson.fromJson(json, CausalMessageContent.class);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(super.equals(obj)){
+            final CausalMessageContent other = (CausalMessageContent) obj;
+
+            return other.causes.equals(this.causes);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), causes);
+    }
+
 }
