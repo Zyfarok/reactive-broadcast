@@ -1,84 +1,75 @@
 package ch.epfl.daeasy.protocol;
 
-import java.util.Optional;
-
-import com.google.common.base.Objects;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
+import java.util.Objects;
+import java.util.Optional;
+
 public class MessageContent {
-	// seq = sequence number of this message
-	private final Optional<Long> seq;
-	// ack = sequence number of the acked message
-	private final Optional<Long> ack;
 	// pid = process ID of the origin
-	private final long pid;
+	public final long pid;
+	// seq = sequence number of this message or ack
+    public final long seq;
+    // Message content
+    public final Optional<String> payload;
 
 	// json serializer/deserializer
 	private static Gson gson = new Gson();
 
-	private MessageContent(Optional<Long> seq, Optional<Long> ack, long pid) {
-		this.seq = seq;
-		this.ack = ack;
-		this.pid = pid;
+    protected MessageContent(long pid, long seq) {
+        this.pid = pid;
+        this.seq = seq;
+        this.payload = Optional.empty();
+    }
+
+    protected MessageContent(long pid, long seq, String payload) {
+        this.pid = pid;
+        this.seq = seq;
+        this.payload = Optional.of(payload);
+    }
+
+    public static MessageContent createMessage(long pid, long seq, String payload) {
+        return new MessageContent(pid, seq, payload);
+    }
+
+    public static MessageContent createMessage(long pid, long seq) {
+        return createMessage(pid, seq, Long.toString(pid) + "->" + Long.toString(seq));
+    }
+
+	public static MessageContent createAck(long pid, long seq) {
+		return new MessageContent(pid, seq);
 	}
 
-	public static MessageContent Message(long seq, long pid) {
-		return new MessageContent(Optional.of(seq), Optional.empty(), pid);
-	}
+    public boolean isMessage() {
+        return this.payload.isPresent();
+    }
 
-	public static MessageContent ACK(long ack, long pid) {
-		return new MessageContent(Optional.empty(), Optional.of(ack), pid);
-	}
+    public boolean isAck() {
+        return !this.isMessage();
+    }
 
-	/*
+    /*
 	 * Construct an ACK from a Message
 	 */
-	public static MessageContent ackFromMessage(MessageContent content) throws IllegalArgumentException {
-		if (!content.isMessage()) {
-			throw new IllegalArgumentException("cannot create ACK");
-		}
+	public MessageContent toAck() {
+	    assert this.isMessage();
 
-		return MessageContent.ACK(content.seq.get(), content.pid);
-	}
-
-	public boolean isACK() {
-		return this.ack.isPresent();
-	}
-
-	public boolean isMessage() {
-		return this.seq.isPresent();
+		return MessageContent.createAck(this.pid, this.seq);
 	}
 
 	public String serialize() {
-		String jsonString = gson.toJson(this);
-		return jsonString;
+        return gson.toJson(this);
 	}
 
 	public static MessageContent deserialize(String json) throws JsonSyntaxException {
 		return gson.fromJson(json, MessageContent.class);
 	}
 
-	public long getPID() {
-		return this.pid;
-	}
-
-	public Optional<Long> getSeq() {
-		return this.seq;
-	}
-
-	public Optional<Long> getAck() {
-		return this.ack;
-	}
-
 	public String toString() {
-		if (this.isACK()) {
-			return "ACK: (ack: " + this.ack.get() + " pid: " + this.pid + ")";
-		} else if (this.isMessage()) {
-			return "MSG: (seq: " + this.seq.get() + " pid: " + this.pid + ")";
-		} else {
-			return "undefined";
-		}
+	    return this.payload.map(
+	            s -> "MSG: (pid: " + this.pid + " seq: " + this.seq + " payload: " + s + ")"
+        ).orElse("ACK: (pid: " + this.pid + " seq: " + this.seq + ")");
 	}
 
 	@Override
@@ -92,19 +83,14 @@ public class MessageContent {
 		}
 
 		final MessageContent other = (MessageContent) obj;
-		if (other.seq == null || other.ack == null) {
-			return false;
-		}
 
-		if (!other.seq.isPresent() && !other.ack.isPresent()) {
-			return false;
-		}
-
-		return this.ack.equals(other.ack) && this.seq.equals(other.seq) && this.pid == other.pid;
+		return this.pid == other.pid && this.seq == other.seq && this.payload.map(p1 ->
+		        other.payload.map(p1::equals).orElse(false)
+        ).orElse(!other.payload.isPresent());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(this.ack, this.seq, this.pid);
+		return Objects.hash(pid, seq, payload);
 	}
 }
