@@ -1,29 +1,29 @@
 package ch.epfl.daeasy.protocol;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonSyntaxException;
 
 import java.util.Objects;
 
 public class CausalMessageContent extends MessageContent {
-    private static final ImmutableMap<Long, Long> empty = ImmutableMap.<Long, Long>builder().build();
-    private final ImmutableMap<Long, Long> causes;
+    private static final ImmutableSet<Cause> empty = ImmutableSet.<Cause>builder().build();
+    public final ImmutableSet<Cause> causes;
 
     private CausalMessageContent(long pid, long seq) {
         super(pid, seq);
         this.causes = empty;
     }
 
-    private CausalMessageContent(long pid, long seq, String payload, ImmutableMap<Long, Long> causes) {
+    private CausalMessageContent(long pid, long seq, String payload, ImmutableSet<Cause> causes) {
         super(pid, seq, payload);
         this.causes = causes;
     }
 
-    public static CausalMessageContent createMessage(long pid, long seq, String payload, ImmutableMap<Long, Long> causes) {
+    public static CausalMessageContent createMessage(long pid, long seq, String payload, ImmutableSet<Cause> causes) {
         return new CausalMessageContent(pid, seq, payload, causes);
     }
 
-    public static CausalMessageContent createMessage(long pid, long seq, ImmutableMap<Long, Long> causes) {
+    public static CausalMessageContent createMessage(long pid, long seq, ImmutableSet<Cause> causes) {
         return createMessage(pid, seq, Long.toString(pid) + "->" + Long.toString(seq), causes);
     }
 
@@ -64,4 +64,12 @@ public class CausalMessageContent extends MessageContent {
         return Objects.hash(super.hashCode(), causes);
     }
 
+    public class Cause {
+        public final long pid;
+        public final long seq;
+        public Cause(long pid, long seq) {
+            this.pid = pid;
+            this.seq = seq;
+        }
+    }
 }
