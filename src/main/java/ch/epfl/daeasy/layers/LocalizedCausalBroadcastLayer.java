@@ -1,10 +1,13 @@
 package ch.epfl.daeasy.layers;
 
 import ch.epfl.daeasy.config.Configuration;
+import ch.epfl.daeasy.config.LCBConfiguration;
 import ch.epfl.daeasy.config.Process;
 import ch.epfl.daeasy.protocol.CausalMessageContent;
+import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
+import com.google.common.collect.ImmutableSet;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.PublishSubject;
@@ -12,37 +15,45 @@ import io.reactivex.subjects.Subject;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public class LocalizedCausalBroadcastLayer<CMC extends CausalMessageContent> extends RxLayer<CMC, CMC> {
-    private final Configuration cfg;
+public class LocalizedCausalBroadcastLayer extends RxLayer<CausalMessageContent, MessageContent> {
+    private final LCBConfiguration cfg;
+    private final ImmutableSet<Integer> dependencies;
 
-    public LocalizedCausalBroadcastLayer(Configuration cfg) {
+    public LocalizedCausalBroadcastLayer(LCBConfiguration cfg) {
         this.cfg = cfg;
+        dependencies = cfg.dependencies.get(cfg.id);
     }
 
     /*
      * Assumes subSocket is a UniformReliableBroadcast
      */
-    public RxSocket<CMC> stackOn(RxSocket<CMC> subSocket) {
+    public RxSocket<MessageContent> stackOn(RxSocket<CausalMessageContent> subSocket) {
 
-        Map<Long, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
+        Map<Integer, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
 
         // initialize data structures
-        for (Process p : this.cfg.processesByAddress.values()) {
-            lastDelivered.put(p.getPID(), BehaviorSubject.create());
-            lastDelivered.get(p.getPID()).onNext(0L);
+        for (Integer p : this.cfg.processesByPID.keySet()) {
+            lastDelivered.put(p, BehaviorSubject.create());
+            lastDelivered.get(p).onNext(0L);
         }
 
-        Subject<CMC> subject = PublishSubject.create();
+        Subject<MessageContent> subject = PublishSubject.create();
 
-        RxSocket<CMC> socket = new RxSocket<>(subject);
+        RxSocket<MessageContent> socket = new RxSocket<>(subject);
 
-        Subject<CMC> intOut = subject;
-        Observable<CMC> intIn = socket.downPipe;
-        Observable<CMC> extIn = subSocket.upPipe;
-        Subject<CMC> extOut = subSocket.downPipe;
+        Subject<MessageContent> intOut = subject;
+        Observable<MessageContent> intIn = socket.downPipe;
+        Observable<CausalMessageContent> extIn = subSocket.upPipe;
+        Subject<CausalMessageContent> extOut = subSocket.downPipe;
 
-        intIn.subscribe(extOut::onNext, error -> {
+        intIn.map(mc -> mc.withCauses(
+                this.dependencies.stream()
+                        .map(i -> new CausalMessageContent.Cause(i, lastDelivered.get(i).getValue()))
+                        .collect(Collectors.toList())
+        )).subscribe(extOut::onNext, error -> {
             System.out.println("error while receiving message from interior at LCB: ");
             error.printStackTrace();
         });

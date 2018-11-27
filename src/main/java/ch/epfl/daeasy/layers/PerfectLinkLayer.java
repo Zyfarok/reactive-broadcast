@@ -33,12 +33,12 @@ public class PerfectLinkLayer<MC extends MessageContent> extends RxLayer<DAPacke
         socket.downPipe.map(p -> {
             long id = p.content.seq;
             return Observable.just(p)
-                            .repeatWhen(completed -> completed.delay(50, TimeUnit.MILLISECONDS))
-                            .takeUntil(acksUp
-                                    .filter(a -> a.content.seq == id)
-                                    .filter(a -> a.content.pid == p.content.pid)
-                                    .filter(a -> a.peer.equals(p.peer))
-                            );
+                    .repeatWhen(completed -> completed.delay(50, TimeUnit.MILLISECONDS))
+                    .takeUntil(acksUp
+                            .filter(a -> a.content.seq == id)
+                            .filter(a -> a.content.pid == p.content.pid)
+                            .filter(a -> a.peer.equals(p.peer))
+                    );
         }).flatMap(o -> o).subscribe(subSocket.downPipe);
 
         return socket;

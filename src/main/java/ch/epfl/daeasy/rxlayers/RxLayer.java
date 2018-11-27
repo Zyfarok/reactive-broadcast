@@ -98,7 +98,7 @@ public abstract class RxLayer<Bottom,Top> implements RxStack<Top> {
 
     @Override
     public <Key> RxLayer<Bottom,Top> stackGroupedBy(Function<Top,Key> key,
-                                                              RxLayer<Top,Top> innerLayer) {
+                                                    RxLayer<Top,Top> innerLayer) {
         return this.stack(RxGroupedLayer.create(key, innerLayer));
     }
 }

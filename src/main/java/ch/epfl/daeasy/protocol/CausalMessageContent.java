@@ -64,12 +64,24 @@ public class CausalMessageContent extends MessageContent {
         return Objects.hash(super.hashCode(), causes);
     }
 
-    public class Cause {
+    public static class Cause {
         public final long pid;
         public final long seq;
         public Cause(long pid, long seq) {
             this.pid = pid;
             this.seq = seq;
+        }
+
+        public boolean equals(Object obj) {
+            if(obj != null && obj.getClass() == this.getClass()) {
+                Cause other = (Cause) obj;
+                return other.pid == pid && other.seq == seq;
+            }
+            return false;
+        }
+
+        public int hashCode() {
+            return Objects.hash(pid, seq);
         }
     }
 }

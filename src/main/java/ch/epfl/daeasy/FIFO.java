@@ -36,17 +36,17 @@ public class FIFO {
         DatagramSocket socket = new DatagramSocket(p.address);
         // udp socket to rx socket
         RxSocket<DatagramPacket> udpRx = new RxUDPSocket(socket)
-        // .stack(new DebugLayer<>(pid + "UDPDeliver : ", pid + "UDPSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "UDPDeliver : ", pid + "UDPSend : "))
+                ;
         // adn the converter layer (DatagramPackets to and from DAPackets)
         RxSocket<DAPacket<MessageContent>> converterSocket = udpRx.stack(new RxPipeConverterLayer<>(new DatagramPacketConverter()))
-        // .stack(new DebugLayer<>(pid + "PCDeliver : ", pid + "PCSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "PCDeliver : ", pid + "PCSend : "))
+                ;
         // inner layer perfect link for each "link"
         RxLayer<DAPacket<MessageContent>, DAPacket<MessageContent>> perfectLinkLayer =
                 new PerfectLinkLayer<>(MessageContent::toAck)
-        // .stack(new DebugLayer<>(pid + "PLDeliver : ", pid + "PLSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "PLDeliver : ", pid + "PLSend : "))
+                ;
         // add the perfect link layers
         RxSocket<DAPacket<MessageContent>> plSocket = converterSocket// .scheduleOn(Schedulers.trampoline())
                 // .stack(RxGroupedLayer.create(x -> x.getPeer().toString(), perfectLinkLayer))
@@ -54,17 +54,17 @@ public class FIFO {
         // .scheduleOn(Schedulers.trampoline());
         // add the best effort broadcast layer
         RxSocket<DAPacket<MessageContent>> bebSocket = plSocket.stack(new BestEffortBroadcastLayer<>(cfg))
-        // .stack(new DebugLayer<>(pid + "BEBDeliver : ", pid + "BEBSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "BEBDeliver : ", pid + "BEBSend : "))
+                ;
         // add the best effort broadcast layer
         RxSocket<MessageContent> urbSocket =
                 bebSocket.stack(new UniformReliableBroadcastLayer<>(cfg))
-        // .stack(new DebugLayer<>(pid + "URBDeliver : ", pid + "URBSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "URBDeliver : ", pid + "URBSend : "))
+                ;
         // add the fifo broadcast layer
         RxSocket<MessageContent> fifoSocket = urbSocket.stack(new FirstInFirstOutBroadcastLayer<>(cfg))
-        // .stack(new DebugLayer<>(pid + "FIFODeliver : ", pid + "FIFOSend : "))
-        ;
+                // .stack(new DebugLayer<>(pid + "FIFODeliver : ", pid + "FIFOSend : "))
+                ;
 
         // logging
         fifoSocket.upPipe.map(mc -> "d " + mc.pid + " " + mc.seq)

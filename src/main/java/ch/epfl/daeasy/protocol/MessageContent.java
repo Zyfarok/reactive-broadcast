@@ -1,5 +1,6 @@
 package ch.epfl.daeasy.protocol;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -57,6 +58,11 @@ public class MessageContent {
 
 		return createAck(this.pid, this.seq);
 	}
+
+	public CausalMessageContent withCauses(Iterable<CausalMessageContent.Cause> causes) {
+	    return this.payload.map(s -> CausalMessageContent.createMessage(this.pid, this.seq, s, ImmutableSet.copyOf(causes)))
+                .orElse(CausalMessageContent.createAck(this.pid, this.seq));
+    }
 
 	public String serialize() {
         return gson.toJson(this);
