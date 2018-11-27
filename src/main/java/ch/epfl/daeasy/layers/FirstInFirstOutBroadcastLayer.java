@@ -51,8 +51,8 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
         });
 
         extIn.subscribe(pkt -> {
-            Long seq = pkt.getContent().getSeq().get();
-            Long remotePID = pkt.getContent().getPID();
+            Long seq = pkt.content.seq;
+            Long remotePID = pkt.content.pid;
             AtomicLong nextId = nextIDs.get(remotePID);
             Map<Long, DAPacket> pendingMessages = messages.get(remotePID);
 
@@ -73,7 +73,7 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
             } else if (nextId.get() > seq) {
                 // already received this sequence number
                 throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer :"
-                        + nextId.get() + " > " + pkt.getContent().toString());
+                        + nextId.get() + " > " + pkt.content.toString());
             } else {
                 // The message can't be delivered yet, so we'll add it to pending
                 synchronized (pendingMessages) {
