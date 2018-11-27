@@ -41,6 +41,11 @@ public class CausalMessageContent extends MessageContent {
         return CausalMessageContent.createAck(this.pid, this.seq);
     }
 
+    public MessageContent withoutCauses() {
+        return this.payload.map(p -> MessageContent.createMessage(this.pid, this.seq, p))
+                .orElse(MessageContent.createAck(this.pid, this.seq));
+    }
+
     public String serialize() {
         return gson.toJson(this);
     }
