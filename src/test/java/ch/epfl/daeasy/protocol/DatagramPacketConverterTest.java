@@ -16,10 +16,10 @@ public class DatagramPacketConverterTest {
         // test that converting a DAPacket to a DatagramPacket and then back to a
         // DAPacket is identity
         SocketAddress peer = new InetSocketAddress("127.0.0.1", 10000);
-        MessageContent content = MessageContent.Message(1, 42);
-        DAPacket msg = new DAPacket(peer, content);
-        Observable<DAPacket> msgs = Observable.fromArray(msg);
-        TestObserver<DAPacket> msgs2 = converter.doForward(converter.doBackward(msgs)).test();
+        MessageContent content = MessageContent.createMessage(1, 42);
+        DAPacket<MessageContent> msg = new DAPacket<>(peer, content);
+        Observable<DAPacket<MessageContent>> msgs = Observable.fromArray(msg);
+        TestObserver<DAPacket<MessageContent>> msgs2 = converter.doForward(converter.doBackward(msgs)).test();
         msgs2.assertResult(msg);
     }
 }

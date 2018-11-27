@@ -20,7 +20,7 @@ public class CausalDatagramPacketConverter extends Converter<Observable<Datagram
             } catch (Exception ignored) {
             }
             return Optional.ofNullable(packet);
-        }).filter(opkt -> opkt.isPresent()).map(opkt -> opkt.get());
+        }).filter(Optional::isPresent).map(Optional::get);
     }
 
     public Observable<DatagramPacket> doBackward(Observable<DAPacket<CausalMessageContent>> msgs) {
