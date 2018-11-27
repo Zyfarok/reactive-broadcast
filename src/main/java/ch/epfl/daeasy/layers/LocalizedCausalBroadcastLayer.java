@@ -10,13 +10,10 @@ import ch.epfl.daeasy.rxsockets.RxSocket;
 import com.google.common.collect.ImmutableSet;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class LocalizedCausalBroadcastLayer extends RxLayer<CausalMessageContent, MessageContent> {
     private final LCBConfiguration cfg;
@@ -31,49 +28,33 @@ public class LocalizedCausalBroadcastLayer extends RxLayer<CausalMessageContent,
      * Assumes subSocket is a UniformReliableBroadcast
      */
     public RxSocket<MessageContent> stackOn(RxSocket<CausalMessageContent> subSocket) {
-
-        Map<Integer, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
+        Map<Long, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
 
         // initialize data structures
         for (Integer p : this.cfg.processesByPID.keySet()) {
-            lastDelivered.put(p, BehaviorSubject.create());
-            lastDelivered.get(p).onNext(0L);
+            lastDelivered.put(p.longValue(), BehaviorSubject.create());
+            lastDelivered.get(p.longValue()).onNext(0L);
         }
 
-        Subject<MessageContent> subject = PublishSubject.create();
+        Observable<MessageContent> upPipe = subSocket.upPipe.flatMap(cmc -> // For each message
+                Observable.fromIterable(cmc.causes).flatMap(c -> // For each clause
+                        lastDelivered.get(c.pid) // Check the deliver status
+                                .filter(seq -> seq >= c.pid).take(1) // And wait until the status is valid
+                ).skip(cmc.causes.size() - 1).take(1) // Wait until all causes are satisfied
+                .map(x -> cmc.withoutCauses()) // And then deliver the message
+        ).share();
 
-        RxSocket<MessageContent> socket = new RxSocket<>(subject);
+        // When any message is delivered, notify others.
+        upPipe.forEach(mc -> lastDelivered.get(mc.pid).onNext(mc.seq));
 
-        Subject<MessageContent> intOut = subject;
-        Observable<MessageContent> intIn = socket.downPipe;
-        Observable<CausalMessageContent> extIn = subSocket.upPipe;
-        Subject<CausalMessageContent> extOut = subSocket.downPipe;
+        RxSocket<MessageContent> socket = new RxSocket<>(upPipe);
 
-        intIn.map(mc -> mc.withCauses(
-                this.dependencies.stream()
-                        .map(i -> new CausalMessageContent.Cause(i, lastDelivered.get(i).getValue()))
+        // Add causes to down-going MessageContents
+        socket.downPipe.map(mc -> mc.withCauses(
+                dependencies.stream()
+                        .map(pid -> new CausalMessageContent.Cause(pid, lastDelivered.get(pid.longValue()).getValue()))
                         .collect(Collectors.toList())
-        )).subscribe(extOut::onNext, error -> {
-            System.out.println("error while receiving message from interior at LCB: ");
-            error.printStackTrace();
-        });
-
-        extIn.subscribe(cmc -> {
-            long seq = cmc.seq;
-            long author = cmc.pid;
-            Observable.fromIterable(cmc.causes) // for all causes
-                    .flatMap(c ->
-                            // we filter to get an output when the cause is met
-                            lastDelivered.get(c.pid).filter(x -> x >= c.seq).take(1)
-                    ).skip(cmc.causes.size() - 1).take(1) // We check when all causes are met...
-                    .forEach(x -> {
-                        intOut.onNext(cmc);  // And then deliver.
-                        lastDelivered.get(cmc.pid).onNext(cmc.seq); // And inform others about the delivery
-                    });
-        }, error -> {
-            System.out.println("error while receiving message from exterior at LCB: ");
-            error.printStackTrace();
-        });
+        )).subscribe(subSocket.downPipe);
 
         return socket;
     }
