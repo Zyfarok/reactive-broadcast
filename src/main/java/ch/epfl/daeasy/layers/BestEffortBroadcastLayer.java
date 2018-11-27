@@ -25,7 +25,7 @@ public class BestEffortBroadcastLayer<MC extends MessageContent> extends RxLayer
     public RxSocket<DAPacket<MC>> stackOn(RxSocket<DAPacket<MC>> subSocket) {
         RxSocket<DAPacket<MC>> socket = new RxSocket<>(subSocket.upPipe);
 
-        socket.downPipe.flatMap(m -> processes.map(p -> new DAPacket<>(p.address, m.content)))
+        socket.downPipe.flatMap(pkt -> processes.map(p -> new DAPacket<>(p.address, pkt.content)))
                 .subscribe(subSocket.downPipe);
 
         return socket;
