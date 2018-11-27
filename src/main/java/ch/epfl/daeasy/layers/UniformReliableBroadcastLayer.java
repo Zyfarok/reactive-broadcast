@@ -14,7 +14,7 @@ import io.reactivex.Observable;
 import io.reactivex.observables.GroupedObservable;
 import io.reactivex.subjects.PublishSubject;
 
-public class UniformReliableBroadcastLayer<MC extends MessageContent> extends RxLayer<DAPacket<MC>, DAPacket<MC>> {
+public class UniformReliableBroadcastLayer<MC extends MessageContent> extends RxLayer<DAPacket<MC>, MC> {
 
     private final Map<SocketAddress, Process> processesByAddress;
     private final int N;
@@ -31,17 +31,17 @@ public class UniformReliableBroadcastLayer<MC extends MessageContent> extends Rx
     /*
      * Assumes subSocket is a BestEffortBroadcast
      */
-    public RxSocket<DAPacket<MC>> stackOn(RxSocket<DAPacket<MC>> subSocket) {
+    public RxSocket<MC> stackOn(RxSocket<DAPacket<MC>> subSocket) {
 
-        PublishSubject<DAPacket<MC>> downPipe = PublishSubject.create();
+        PublishSubject<MC> downPipe = PublishSubject.create();
 
         // group incoming packets and outgoing packet per MessageContent
         // Each GroupedObservable is equivalent to an element in pending
         // The DAPackets that goes through the GroupedObservable serves as acks.
         Observable<GroupedObservable<MC, DAPacket<MC>>> groupedPendingAndAck =
-                subSocket.upPipe.mergeWith(downPipe).groupBy(x -> x.content);
+                subSocket.upPipe.mergeWith(downPipe.map(mc -> new DAPacket<>(null, mc))).groupBy(x -> x.content);
 
-        Observable<DAPacket<MC>> delivered = groupedPendingAndAck.flatMap(o -> {
+        Observable<MC> delivered = groupedPendingAndAck.flatMap(o -> {
             // Broadcast any message when we see it for the first time
             subSocket.downPipe.onNext(new DAPacket<MC>(null, o.getKey()));
 
@@ -53,7 +53,8 @@ public class UniformReliableBroadcastLayer<MC extends MessageContent> extends Rx
             return o.filter(
                     x -> x.peer != null
                             && !x.peer.equals(process.address))
-                    .filter(x -> ackCount.decrementAndGet() == 0);
+                    .filter(x -> ackCount.decrementAndGet() == 0)
+                    .map(x -> x.content);
 
         });
 

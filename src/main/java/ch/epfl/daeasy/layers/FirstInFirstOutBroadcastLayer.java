@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import ch.epfl.daeasy.config.Configuration;
 import ch.epfl.daeasy.config.Process;
-import ch.epfl.daeasy.protocol.DAPacket;
+import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import ch.epfl.daeasy.logging.Logging;
@@ -14,7 +14,7 @@ import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
-public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
+public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends RxLayer<MC, MC> {
     private final Configuration cfg;
 
     public FirstInFirstOutBroadcastLayer(Configuration cfg) {
@@ -24,44 +24,44 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
     /*
      * Assumes subSocket is a UniformReliableBroadcast
      */
-    public RxSocket<DAPacket> stackOn(RxSocket<DAPacket> subSocket) {
-        Map<Long, Map<Long, DAPacket>> messages = new HashMap<>(); // pid -> message id -> message
+    public RxSocket<MC> stackOn(RxSocket<MC> subSocket) {
+        Map<Long, Map<Long, MC>> messages = new HashMap<>(); // pid -> message id -> message
         Map<Long, AtomicLong> nextIDs = new HashMap<>(); // pid -> ID of message to be delivered next
 
-        // initialize data structres
+        // initialize data structures
         for (Process p : this.cfg.processesByAddress.values()) {
             messages.put(p.getPID(), new HashMap<>());
             nextIDs.put(p.getPID(), new AtomicLong(1)); // by default, first message is '1'
         }
 
-        Subject<DAPacket> subject = PublishSubject.create();
+        Subject<MC> subject = PublishSubject.create();
 
-        RxSocket<DAPacket> socket = new RxSocket<>(subject);
+        RxSocket<MC> socket = new RxSocket<>(subject);
 
-        Subject<DAPacket> intOut = subject;
-        Observable<DAPacket> intIn = socket.downPipe;
-        Observable<DAPacket> extIn = subSocket.upPipe;
-        Subject<DAPacket> extOut = subSocket.downPipe;
+        Subject<MC> intOut = subject;
+        Observable<MC> intIn = socket.downPipe;
+        Observable<MC> extIn = subSocket.upPipe;
+        Subject<MC> extOut = subSocket.downPipe;
 
-        intIn.subscribe(pkt -> {
-            extOut.onNext(pkt);
+        intIn.subscribe(mc -> {
+            extOut.onNext(mc);
         }, error -> {
             Logging.debug("error while receiving message from interior at FIFOB: ");
             error.printStackTrace();
         });
 
-        extIn.subscribe(pkt -> {
-            Long seq = pkt.content.seq;
-            Long remotePID = pkt.content.pid;
+        extIn.subscribe(mc -> {
+            long seq = mc.seq;
+            long remotePID = mc.pid;
             AtomicLong nextId = nextIDs.get(remotePID);
-            Map<Long, DAPacket> pendingMessages = messages.get(remotePID);
+            Map<Long, MC> pendingMessages = messages.get(remotePID);
 
-            if (nextId.get() == seq) { // In this case, we can directly deliver
-                intOut.onNext(pkt);
-                nextId.set(seq + 1);
+            synchronized (pendingMessages) {
+                if (nextId.get() == seq) { // In this case, we can directly deliver
+                    intOut.onNext(mc);
+                    nextId.set(seq + 1);
 
-                // If this "unlocks" previously pending messages, we can deliver them
-                synchronized (pendingMessages) {
+                    // If this "unlocks" previously pending messages, we can deliver them
                     while (pendingMessages.containsKey(nextId.get())) {
                         // deliver (and remove from pending)
                         intOut.onNext(pendingMessages.get(nextId.get()));
@@ -69,19 +69,14 @@ public class FirstInFirstOutBroadcastLayer extends RxLayer<DAPacket, DAPacket> {
                         // update nextId
                         nextId.set(nextId.get() + 1);
                     }
-                }
-            } else if (nextId.get() > seq) {
-                // already received this sequence number
-                throw new RuntimeException("received duplicate sequence number in FirstInFirstOutBroadcastLayer :"
-                        + nextId.get() + " > " + pkt.content.toString());
-            } else {
-                // The message can't be delivered yet, so we'll add it to pending
-                synchronized (pendingMessages) {
-                    pendingMessages.put(seq, pkt);
+                } else {
+                    assert nextId.get() < seq;
+                    // The message can't be delivered yet, so we'll add it to pending
+                    pendingMessages.put(seq, mc);
                 }
             }
         }, error -> {
-            Logging.debug("error while receiving message from exteriror at FIFOB: ");
+            Logging.debug("error while receiving message from exterior at FIFOB: ");
             error.printStackTrace();
         });
 
