@@ -37,23 +37,36 @@ public class LocalizedCausalBroadcastLayer extends RxLayer<CausalMessageContent,
         final ImmutableMap<Long, AtomicLong> lastDelivered = lastDeliveredBuilder.build();
 
         // Process incoming messages
-        Observable<MessageContent> upPipe = subSocket.upPipe.flatMap(cmc -> // For each message
-                Observable.fromIterable(cmc.causes).flatMap(c -> // For each clause
-                        deliveryEvents.get(c.pid) // Check the deliver status
-                                .filter(seq -> seq >= c.seq).take(1) // And wait until the status is valid
-                ).takeLast(1) // Wait until all causes are satisfied
-                .map(x -> cmc.withoutCauses()) // And then deliver the message
-        ).doOnNext(mc -> lastDelivered.get(mc.pid).incrementAndGet()).share();
+        Observable<MessageContent> upPipe = subSocket.upPipe.flatMap(cmc ->
+                // for each message
+                Observable.fromIterable(cmc.causes).flatMap(c ->
+                        // for each clause
+                        // listen to the delivery events
+                        deliveryEvents.get(c.pid)
+                                // wait for the previous message to be delivered if not yet delivered
+                                .filter(seq -> seq >= c.seq).take(1)
+                )
+                        // wait until all causes are satisfied
+                        .takeLast(1)
+                        // and then deliver the current message
+                        .map(x -> cmc.withoutCauses())
+        ).doOnNext(mc ->
+                // make sure to update the delivered message counter before anything else
+                lastDelivered.get(mc.pid).incrementAndGet()
+        ).share();
 
-        // Notify others about the delivery
+        // And lastly, notify others about the delivery
         upPipe.forEach(mc -> deliveryEvents.get(mc.pid).onNext(mc.seq));
 
         RxSocket<MessageContent> socket = new RxSocket<>(upPipe);
 
-        // Add causes to down-going MessageContents
+        // add causes to down-going messages
         socket.downPipe.map(mc -> mc.withCauses(
                 dependencies.stream()
-                        .map(pid -> new CausalMessageContent.Cause(pid, lastDelivered.get(pid.longValue()).get()))
+                        .map(pid ->
+                                new CausalMessageContent.Cause(
+                                        pid,
+                                        lastDelivered.get(pid.longValue()).get()))
                         .collect(Collectors.toList())
         )).subscribe(subSocket.downPipe);
 
