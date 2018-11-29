@@ -12,6 +12,7 @@ import io.reactivex.subjects.BehaviorSubject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends RxLayer<MC, MC> {
     private final Configuration cfg;
@@ -26,13 +27,13 @@ public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends Rx
     public RxSocket<MC> stackOn(RxSocket<MC> subSocket) {
         // initialize data structures
         ImmutableMap.Builder<Long, BehaviorSubject<Long>> deliveryEventsBuilder = ImmutableMap.builder();
-        ImmutableMap.Builder<Long, AtomicInteger> lastDeliveredBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<Long, AtomicLong> lastDeliveredBuilder = ImmutableMap.builder();
         for(Integer pid : cfg.processesByPID.keySet()) {
             deliveryEventsBuilder.put(pid.longValue(), BehaviorSubject.createDefault(0L));
-            lastDeliveredBuilder.put(pid.longValue(), new AtomicInteger(0));
+            lastDeliveredBuilder.put(pid.longValue(), new AtomicLong(0L));
         }
         final ImmutableMap<Long, BehaviorSubject<Long>> deliveryEvents = deliveryEventsBuilder.build();
-        final ImmutableMap<Long, AtomicInteger> lastDelivered = lastDeliveredBuilder.build();
+        final ImmutableMap<Long, AtomicLong> lastDelivered = lastDeliveredBuilder.build();
 
         // Process incoming messages
         Observable<MC> upPipe = subSocket.upPipe.flatMap(mc ->
