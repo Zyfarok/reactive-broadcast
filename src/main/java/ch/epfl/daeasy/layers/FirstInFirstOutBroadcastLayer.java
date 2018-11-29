@@ -5,13 +5,9 @@ import ch.epfl.daeasy.protocol.MessageContent;
 import ch.epfl.daeasy.rxlayers.RxLayer;
 import ch.epfl.daeasy.rxsockets.RxSocket;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends RxLayer<MC, MC> {
