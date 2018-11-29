@@ -1,30 +1,34 @@
 package ch.epfl.daeasy.protocol;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.gson.JsonSyntaxException;
-
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+
+import com.google.gson.JsonSyntaxException;
+import com.google.common.collect.Sets;
 
 public class CausalMessageContent extends MessageContent {
-    private static final ImmutableSet<Cause> empty = ImmutableSet.<Cause>builder().build();
-    public final ImmutableSet<Cause> causes;
+    private static final Set<Cause> empty = new HashSet<>();
+    public final Set<Cause> causes;
 
     private CausalMessageContent(long pid, long seq) {
         super(pid, seq);
         this.causes = empty;
     }
 
-    private CausalMessageContent(long pid, long seq, String payload, ImmutableSet<Cause> causes) {
+    private CausalMessageContent(long pid, long seq, String payload, Iterable<Cause> causes) {
         super(pid, seq, payload);
-        this.causes = causes;
+        this.causes = Collections.unmodifiableSet(Sets.newHashSet(causes));
     }
 
-    public static CausalMessageContent createMessage(long pid, long seq, String payload, ImmutableSet<Cause> causes) {
-        return new CausalMessageContent(pid, seq, payload, causes);
+    public static CausalMessageContent createMessage(long pid, long seq, String payload, Iterable<Cause> causes) {
+        return new CausalMessageContent(pid, seq, payload, Collections.unmodifiableSet(Sets.newHashSet(causes)));
     }
 
-    public static CausalMessageContent createMessage(long pid, long seq, ImmutableSet<Cause> causes) {
-        return createMessage(pid, seq, Long.toString(pid) + "->" + Long.toString(seq), causes);
+    public static CausalMessageContent createMessage(long pid, long seq, Iterable<Cause> causes) {
+        return createMessage(pid, seq, Long.toString(pid) + "->" + Long.toString(seq),
+                Collections.unmodifiableSet(Sets.newHashSet(causes)));
     }
 
     public static CausalMessageContent createAck(long pid, long seq) {
@@ -56,7 +60,7 @@ public class CausalMessageContent extends MessageContent {
 
     @Override
     public boolean equals(Object obj) {
-        if(super.equals(obj)){
+        if (super.equals(obj)) {
             final CausalMessageContent other = (CausalMessageContent) obj;
 
             return other.causes.equals(this.causes);
@@ -72,13 +76,14 @@ public class CausalMessageContent extends MessageContent {
     public static class Cause {
         public final long pid;
         public final long seq;
+
         public Cause(long pid, long seq) {
             this.pid = pid;
             this.seq = seq;
         }
 
         public boolean equals(Object obj) {
-            if(obj != null && obj.getClass() == this.getClass()) {
+            if (obj != null && obj.getClass() == this.getClass()) {
                 Cause other = (Cause) obj;
                 return other.pid == pid && other.seq == seq;
             }
