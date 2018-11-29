@@ -35,12 +35,13 @@ public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends Rx
         final ImmutableMap<Long, AtomicInteger> lastDelivered = lastDeliveredBuilder.build();
 
         // Process incoming messages
-        Observable<MC> upPipe = subSocket.upPipe.flatMap(mc -> {
-            return deliveryEvents.get(mc.pid) // Take the sequence of last delivered ids
-                    .filter(seq -> seq == mc.seq - 1).take(1) // wait for the previous message to be delivered
-                    .map(seq ->  mc); // and then send the current message
-        }).doOnNext(mc -> lastDelivered.get(mc.pid).incrementAndGet()).share();
+        Observable<MC> upPipe = subSocket.upPipe.flatMap(mc ->
+                deliveryEvents.get(mc.pid) // Take the sequence of last delivered ids
+                        .filter(seq -> seq == mc.seq - 1).take(1) // wait for the previous message to be delivered
+                        .map(seq ->  mc) // and then send the current message
+        ).doOnNext(mc -> lastDelivered.get(mc.pid).incrementAndGet()).share();
 
+        // Notify others about the delivery
         upPipe.forEach(mc -> deliveryEvents.get(mc.pid).onNext(mc.seq));
 
         RxSocket<MC> socket = new RxSocket<>(upPipe);
