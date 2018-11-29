@@ -156,33 +156,33 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         List<MessageContent> contents1 = IntStream.range(1, 67).mapToObj(x -> MessageContent.createMessage(3, x))
                 .collect(Collectors.toList());
-        Set<String> msgSet1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toSet());
+        List<String> msgList1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toList());
 
 
         List<MessageContent> contents2 = IntStream.range(1, 103).mapToObj(x -> MessageContent.createMessage(4, x))
                 .collect(Collectors.toList());
-        Set<String> msgSet2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toSet());
+        List<String> msgList2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toList());
 
 
         TestObserver<String> test1 = sockets.get(0).upPipe
                 .map(MessageContent::toString)
-                .take(msgSet1.size() + msgSet2.size())
+                .take(msgList1.size() + msgList2.size())
                 .test();
         TestObserver<String> test2 = sockets.get(1).upPipe
                 .map(MessageContent::toString)
-                .take(msgSet1.size() + msgSet2.size())
+                .take(msgList1.size() + msgList2.size())
                 .test();
         TestObserver<String> test3 = sockets.get(2).upPipe
                 .map(MessageContent::toString)
-                .take(msgSet1.size() + msgSet2.size())
+                .take(msgList1.size() + msgList2.size())
                 .test();
         TestObserver<String> test4 = sockets.get(3).upPipe
                 .map(MessageContent::toString)
-                .take(msgSet1.size() + msgSet2.size())
+                .take(msgList1.size() + msgList2.size())
                 .test();
         TestObserver<String> test5 = sockets.get(4).upPipe
                 .map(MessageContent::toString)
-                .take(msgSet1.size() + msgSet2.size())
+                .take(msgList1.size() + msgList2.size())
                 .test();
 
         Thread.sleep(500);
@@ -211,7 +211,7 @@ public class FirstInFirstOutBroadcastLayerTest {
         test1.assertValueCount(0);
         test2.assertValueCount(0);
         test3.assertValueCount(0);
-        test4.assertValueCount(msgSet2.size()).assertValueSet(msgSet2);
+        test4.assertValueCount(msgList2.size()).assertValueSequence(msgList2);
         test5.assertValueCount(0);
 
         Thread.sleep(3000);
@@ -219,12 +219,12 @@ public class FirstInFirstOutBroadcastLayerTest {
         closables.get(1).open();
 
         Thread.sleep(3000);
-        Set<String> totalSet = Stream.concat(msgSet1.stream(), msgSet2.stream()).collect(Collectors.toSet());
+        List<String> totalList = Stream.concat(msgList2.stream(), msgList1.stream()).collect(Collectors.toList());
 
         test1.assertValueCount(0);
-        test2.assertValueCount(totalSet.size()).assertValueSet(totalSet);
-        test3.assertValueCount(totalSet.size()).assertValueSet(totalSet);
-        test4.assertValueCount(totalSet.size()).assertValueSet(totalSet);
+        test2.assertValueCount(totalList.size()).assertValueSet(totalList);
+        test3.assertValueCount(totalList.size()).assertValueSet(totalList);
+        test4.assertValueCount(totalList.size()).assertValueSequence(totalList);
         test5.assertValueCount(0);
 
     }
