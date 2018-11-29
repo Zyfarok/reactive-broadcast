@@ -25,18 +25,19 @@ public class FirstInFirstOutBroadcastLayer<MC extends MessageContent> extends Rx
 
         // initialize data structures
         for(Integer pid : cfg.processesByPID.keySet()) {
-            lastDelivered.put(pid.longValue(), BehaviorSubject.create());
-            lastDelivered.get(pid.longValue()).onNext(0L);
+            lastDelivered.put(pid.longValue(), BehaviorSubject.createDefault(0L));
         }
 
         Observable<MC> upPipe = subSocket.upPipe.flatMap(mc ->
                 lastDelivered.get(mc.pid) // Take the sequence of last delivered ids
                         .filter(seq -> seq == mc.seq - 1).take(1) // wait for the previous message to be delivered
                         .map(seq -> mc) // and then send the current message
-        ).share();
+        ).map(mc -> {
+            // When any message is delivered, notify others.
+            lastDelivered.get(mc.pid).onNext(mc.seq);
+            return mc;
+        });
 
-        // When any message is delivered, notify others.
-        upPipe.forEach(mc -> lastDelivered.get(mc.pid).onNext(mc.seq));
 
         RxSocket<MC> socket = new RxSocket<>(upPipe);
 

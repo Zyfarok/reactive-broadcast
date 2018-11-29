@@ -31,21 +31,21 @@ public class LocalizedCausalBroadcastLayer extends RxLayer<CausalMessageContent,
         Map<Long, BehaviorSubject<Long>> lastDelivered = new HashMap<>();
 
         // initialize data structures
-        for (Integer p : this.cfg.processesByPID.keySet()) {
-            lastDelivered.put(p.longValue(), BehaviorSubject.create());
-            lastDelivered.get(p.longValue()).onNext(0L);
+        for (Integer pid : this.cfg.processesByPID.keySet()) {
+            lastDelivered.put(pid.longValue(), BehaviorSubject.createDefault(0L));
         }
 
         Observable<MessageContent> upPipe = subSocket.upPipe.flatMap(cmc -> // For each message
                 Observable.fromIterable(cmc.causes).flatMap(c -> // For each clause
                         lastDelivered.get(c.pid) // Check the deliver status
-                                .filter(seq -> seq >= c.pid).take(1) // And wait until the status is valid
-                ).skip(cmc.causes.size() - 1).take(1) // Wait until all causes are satisfied
+                                .filter(seq -> seq >= c.seq).take(1) // And wait until the status is valid
+                ).takeLast(1) // Wait until all causes are satisfied
                 .map(x -> cmc.withoutCauses()) // And then deliver the message
-        ).share();
-
-        // When any message is delivered, notify others.
-        upPipe.forEach(mc -> lastDelivered.get(mc.pid).onNext(mc.seq));
+        ).map(mc -> {
+            // When any message is delivered, notify others.
+            lastDelivered.get(mc.pid).onNext(mc.seq);
+            return mc;
+        });
 
         RxSocket<MessageContent> socket = new RxSocket<>(upPipe);
 
