@@ -28,11 +28,7 @@ public class DAPacket<MC extends MessageContent> {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-
-        if (!DAPacket.class.isAssignableFrom(obj.getClass())) {
+        if (obj == null || obj.getClass() != getClass()) {
             return false;
         }
 
