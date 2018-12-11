@@ -94,8 +94,8 @@ public class LocalCausalBroadcastLayerCausalTest {
 
     @Test
     public void testCausal() {
-        //setup(0.4, 0.5, 500);
-        setup(0, 0, 0);
+        setup(0.4, 0.5, 500);
+        //setup(0, 0, 0);
 
         try {
             Observable<MessageContent> upPipe1 = sockets.get(0).upPipe.share();
@@ -139,9 +139,7 @@ public class LocalCausalBroadcastLayerCausalTest {
             // p3 sends one message for every message from p2
             upPipe3.filter(mc -> mc.pid == 2).map(mc ->
                     contents3.get((int) mc.seq - 1)
-            ).doOnNext(mc -> System.out.println("Entering p3 downPipe "  + mc)).subscribe(sockets.get(2).downPipe);
-
-            upPipe3.forEach(mc ->  System.out.println("Detected p3 uppipe " + mc));
+            ).subscribe(sockets.get(2).downPipe);
 
 
             // Create first phase TestObservers
@@ -202,7 +200,7 @@ public class LocalCausalBroadcastLayerCausalTest {
                         assert m1Count == mc.seq - 1;
                         ++m1Count;
                     } else if (mc.pid == 2) {
-                        System.out.println(mc.seq + "->" + m1Count);
+                        //System.out.println(mc.seq + "->" + m1Count);
                         assert m2Count == mc.seq - 1 && m1Count >= (mc.seq * 5);
                         ++m2Count;
                     }
@@ -217,7 +215,6 @@ public class LocalCausalBroadcastLayerCausalTest {
 
             // ENTERING THIRD PHASE
             // Reopen p1
-            System.out.println("Reopenning p1");
             closables.get(0).open();
 
             // p3 finally also delivers his messages (URB majority reached with p1)
