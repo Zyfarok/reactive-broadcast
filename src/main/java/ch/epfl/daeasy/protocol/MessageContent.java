@@ -35,7 +35,7 @@ public class MessageContent {
     }
 
     public static MessageContent createMessage(long pid, long seq) {
-        return createMessage(pid, seq, Long.toString(pid) + "->" + Long.toString(seq));
+        return createMessage(pid, seq, Long.toString(pid) + "." + Long.toString(seq));
     }
 
 	public static MessageContent createAck(long pid, long seq) {
