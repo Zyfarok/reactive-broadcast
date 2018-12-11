@@ -105,17 +105,16 @@ public class LocalCausalBroadcastLayerFIFOTest {
     @Test
     public void fifoTwoProducers() {
         setup(0.1, 0.1, 505);
-        // P1 sends 10 message, with a high probability the packets will be delayed
-        // and
-        // be received unordered
-        // P2 does the same
+        // P1 sends 30 messages, with a high probability the packets will be delayed
+        // and received unordered
+        // P2 does the same with 60 messages
         // Other processes should have received each packet in order
         try {
 
-            List<MessageContent> contents1 = IntStream.range(1, 15).mapToObj(x -> MessageContent.createMessage(1, x))
+            List<MessageContent> contents1 = IntStream.range(1, 21).mapToObj(x -> MessageContent.createMessage(1, x))
                     .collect(Collectors.toList());
             List<String> msgList1 = contents1.stream().map(MessageContent::toString).collect(Collectors.toList());
-            List<MessageContent> contents2 = IntStream.range(1, 17).mapToObj(x -> MessageContent.createMessage(2, x))
+            List<MessageContent> contents2 = IntStream.range(1, 61).mapToObj(x -> MessageContent.createMessage(2, x))
                     .collect(Collectors.toList());
             List<String> msgList2 = contents2.stream().map(MessageContent::toString).collect(Collectors.toList());
 
@@ -127,15 +126,15 @@ public class LocalCausalBroadcastLayerFIFOTest {
             TestObserver<String> testfromP2 = p5socketTest.filter(x -> x.pid == 2).map(MessageContent::toString)
                     .take(msgList2.size()).test();
 
-            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
-                    .forEach(sockets.get(0).downPipe::onNext);
-            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
-                    .forEach(sockets.get(0).downPipe::onNext);
+            Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
+                    .subscribe(sockets.get(0).downPipe);
+            Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+                    .subscribe(sockets.get(1).downPipe);
 
             // P5 should have received every message from P1 in order
-            testfromP1.awaitDone(20, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
+            testfromP1.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
             // P5 should have received every message from P2 in order
-            testfromP2.awaitDone(20, TimeUnit.SECONDS).assertValueCount(msgList2.size()).assertValueSequence(msgList2);
+            testfromP2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList2.size()).assertValueSequence(msgList2);
         } catch (Exception e) {
             fail("exception: " + e.toString());
         }
