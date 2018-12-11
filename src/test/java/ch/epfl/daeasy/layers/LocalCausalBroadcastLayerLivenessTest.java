@@ -61,7 +61,6 @@ public class LocalCausalBroadcastLayerLivenessTest {
                 final CausalDatagramPacketConverter daConverter = new CausalDatagramPacketConverter();
                 final RxLayer<DatagramPacket, DAPacket<CausalMessageContent>> perfectLinks = new RxNil<DatagramPacket>()
                         .convertPipes(daConverter).stack(perfectLinkLayer);
-
                 final RxLayer<DatagramPacket, DAPacket<CausalMessageContent>> beb = perfectLinks
                         .stack(new BestEffortBroadcastLayer<>(cfgs.get(i)));
 
@@ -125,8 +124,8 @@ public class LocalCausalBroadcastLayerLivenessTest {
             test1.awaitDone(5, TimeUnit.SECONDS).assertValueCount(1).assertValueSet(deliveredMessages);
 
             // other processes should have delivered all two messages
-            test1.awaitDone(5, TimeUnit.SECONDS).assertValueCount(messageCount).assertValueSet(messages);
-            test1.awaitDone(5, TimeUnit.SECONDS).assertValueCount(messageCount).assertValueSet(messages);
+            test2.awaitDone(5, TimeUnit.SECONDS).assertValueCount(messageCount).assertValueSet(messages);
+            test3.awaitDone(5, TimeUnit.SECONDS).assertValueCount(messageCount).assertValueSet(messages);
         } catch (Exception e) {
             e.printStackTrace();
         }
