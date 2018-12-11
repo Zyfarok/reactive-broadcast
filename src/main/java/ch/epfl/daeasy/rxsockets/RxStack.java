@@ -7,6 +7,8 @@ import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 
+import java.util.function.Consumer;
+
 public interface RxStack<Top> {
     <Higher> RxStack<Higher> stack(RxLayer<Top,Higher> layer);
 
@@ -36,4 +38,8 @@ public interface RxStack<Top> {
 
     <Key> RxStack<Top> stackGroupedBy(Function<Top,Key> key,
                                       RxLayer<Top,Top> innerLayer);
+
+    RxStack<Top> doOnNextUp(Consumer<Top> consumer);
+
+    RxStack<Top> doOnNextDown(Consumer<Top> consumer);
 }

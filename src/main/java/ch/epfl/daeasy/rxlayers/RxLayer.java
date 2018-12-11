@@ -8,6 +8,8 @@ import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 
+import java.util.function.Consumer;
+
 /**
  * This is a RxSocket "builder".
  *
@@ -100,5 +102,15 @@ public abstract class RxLayer<Bottom,Top> implements RxStack<Top> {
     public <Key> RxLayer<Bottom,Top> stackGroupedBy(Function<Top,Key> key,
                                                     RxLayer<Top,Top> innerLayer) {
         return this.stack(RxGroupedLayer.create(key, innerLayer));
+    }
+
+    @Override
+    public RxLayer<Bottom, Top> doOnNextUp(Consumer<Top> consumer) {
+        return this.stack(new RxDoOnNextUpLayer<>(consumer));
+    }
+
+    @Override
+    public RxLayer<Bottom, Top> doOnNextDown(Consumer<Top> consumer) {
+        return this.stack(new RxDoOnNextDownLayer<>(consumer));
     }
 }

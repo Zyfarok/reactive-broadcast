@@ -8,6 +8,8 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.subjects.PublishSubject;
 
+import java.util.function.Consumer;
+
 public class RxSocket<Top> implements RxStack<Top> {
     public final Observable<Top> upPipe;
     public final PublishSubject<Top> downPipe;
@@ -87,6 +89,16 @@ public class RxSocket<Top> implements RxStack<Top> {
     public <Key> RxSocket<Top> stackGroupedBy(Function<Top, Key> key,
                                               RxLayer<Top, Top> innerLayer) {
         return this.stack(RxGroupedLayer.create(key, innerLayer));
+    }
+
+    @Override
+    public RxSocket<Top> doOnNextUp(Consumer<Top> consumer) {
+        return this.stack(new RxDoOnNextUpLayer<Top>(consumer));
+    }
+
+    @Override
+    public RxSocket<Top> doOnNextDown(Consumer<Top> consumer) {
+        return this.stack(new RxDoOnNextDownLayer<Top>(consumer));
     }
 
     public RxClosableSocket<Top> toClosable() {
