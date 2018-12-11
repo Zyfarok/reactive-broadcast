@@ -58,20 +58,20 @@ public class CausalMessageContent extends MessageContent {
         return gson.fromJson(json, CausalMessageContent.class);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (super.equals(obj)) {
-            final CausalMessageContent other = (CausalMessageContent) obj;
+//    @Override
+//    public boolean equals(Object obj) {
+//        if (super.equals(obj)) {
+//            final CausalMessageContent other = (CausalMessageContent) obj;
+//
+//            return other.causes.equals(this.causes);
+//        }
+//        return false;
+//    }
 
-            return other.causes.equals(this.causes);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), causes);
-    }
+//    @Override
+//    public int hashCode() {
+//        return Objects.hash(super.hashCode(), causes);
+//    }
 
     public static class Cause {
         public final long pid;
