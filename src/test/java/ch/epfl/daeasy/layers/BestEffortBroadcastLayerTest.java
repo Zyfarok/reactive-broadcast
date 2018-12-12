@@ -39,8 +39,8 @@ public class BestEffortBroadcastLayerTest {
         private static List<RxClosableSocket<DatagramPacket>> closables;
         private static List<RxSocket<DAPacket<MessageContent>>> sockets;
 
-        private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-                RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+        private void setup(double dropRate) {
+                RxBadRouter router = new RxBadRouter(dropRate);
 
                 List<Configuration> cfgs = new ArrayList<>();
                 List<SocketAddress> addrs = new ArrayList<>();
@@ -78,7 +78,7 @@ public class BestEffortBroadcastLayerTest {
 
         @Test
         public void broadcastOneProducer() {
-                setup(0.8, 0.8, 50);
+                setup(0.8);
                 try {
 
                         List<MessageContent> contents = IntStream.range(0, 100)
@@ -106,7 +106,7 @@ public class BestEffortBroadcastLayerTest {
 
         @Test
         public void broadcastTwoProducer() {
-                setup(0.8, 0.8, 50);
+                setup(0.8);
                 try {
 
                         List<MessageContent> contents1 = IntStream.range(0, 100)
@@ -145,7 +145,7 @@ public class BestEffortBroadcastLayerTest {
 
         @Test
         public void advancedTest() throws InterruptedException {
-                setup(0, 0, 0);
+                setup(0);
 
                 closables.forEach(RxClosableSocket::close);
                 closables.get(3).open();

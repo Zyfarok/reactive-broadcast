@@ -34,7 +34,7 @@ public class PerfectLinkLayerTest {
 
         @Test
         public void perfectLinkEndsUpSendingPacketsAndRemoveDuplicates() {
-                RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
+                RxBadRouter router = new RxBadRouter(0.8);
 
                 SocketAddress address1 = new InetSocketAddress("127.0.0.1", 1000);
                 SocketAddress address2 = new InetSocketAddress("127.0.0.1", 1001);
@@ -62,7 +62,7 @@ public class PerfectLinkLayerTest {
 
         @Test
         public void perfectLinkWithGroupedLayers() {
-                RxBadRouter router = new RxBadRouter(0.8, 0.8, 25, MILLISECONDS);
+                RxBadRouter router = new RxBadRouter(0.8);
 
                 SocketAddress address1 = new InetSocketAddress("127.0.0.1", 1000);
                 SocketAddress address2 = new InetSocketAddress("127.0.0.1", 1001);

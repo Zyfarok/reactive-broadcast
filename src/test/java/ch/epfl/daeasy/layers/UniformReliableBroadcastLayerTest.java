@@ -40,8 +40,8 @@ public class UniformReliableBroadcastLayerTest {
     private static List<RxClosableSocket<DatagramPacket>> closables;
     private static RxBadRouter router;
 
-    private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-        RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+    private void setup(double dropRate) {
+        RxBadRouter router = new RxBadRouter(dropRate);
 
         List<Configuration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
@@ -90,7 +90,7 @@ public class UniformReliableBroadcastLayerTest {
 
     @Test
     public void broadcastOneProducer() {
-        setup(0.5, 0.5, 50);
+        setup(0.5);
         try {
             List<MessageContent> contents = IntStream.range(0, 200)
                     .mapToObj(x -> MessageContent.createMessage(1, x)).collect(Collectors.toList());
@@ -133,7 +133,7 @@ public class UniformReliableBroadcastLayerTest {
     @Test
     public void broadcastMajorityFailed() {
 
-        setup(0, 0, 0);
+        setup(0);
         try {
 
             List<MessageContent> contents = IntStream.range(0, 10)
@@ -182,7 +182,7 @@ public class UniformReliableBroadcastLayerTest {
 
     @Test
     public void advancedTest() throws InterruptedException {
-        setup(0, 0, 0);
+        setup(0);
 
         closables.forEach(RxClosableSocket::close);
         closables.get(3).open();

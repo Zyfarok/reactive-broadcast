@@ -33,8 +33,8 @@ public class LocalCausalBroadcastLayerFIFOTest {
     private static List<RxSocket<MessageContent>> sockets;
     private static List<RxClosableSocket<DatagramPacket>> closables;
 
-    private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-        RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+    private void setup(double dropRate) {
+        RxBadRouter router = new RxBadRouter(dropRate);
 
         List<LCBConfiguration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
@@ -43,6 +43,7 @@ public class LocalCausalBroadcastLayerFIFOTest {
 
         try {
             for (int i = 0; i < 5; i++) {
+                int pid = i + 1;
                 cfgs.add(new LCBConfiguration(i + 1, "test/membership_LCB_5p_liveness_test.txt", 1));
                 addrs.add(new InetSocketAddress("127.0.0.1", 10001 + i));
 
@@ -75,7 +76,8 @@ public class LocalCausalBroadcastLayerFIFOTest {
 
     @Test
     public void fifoOneProducer() {
-        setup(0.1, 0.5, 1005);
+        setup(0.1);
+
         // P1 sends 10 message, with a high probability the packets will be delayed and
         // be received unordered
         // Other processes should have received each packet in order
@@ -104,7 +106,8 @@ public class LocalCausalBroadcastLayerFIFOTest {
 
     @Test
     public void fifoTwoProducers() {
-        setup(0.1, 0.1, 505);
+        //setup(0.1, 0.1, 505);
+        setup(0);
         // P1 sends 30 messages, with a high probability the packets will be delayed
         // and received unordered
         // P2 does the same with 60 messages
@@ -126,15 +129,15 @@ public class LocalCausalBroadcastLayerFIFOTest {
             TestObserver<String> testfromP2 = p5socketTest.filter(x -> x.pid == 2).map(MessageContent::toString)
                     .take(msgList2.size()).test();
 
-            Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
+            Observable.interval(2, TimeUnit.MILLISECONDS).zipWith(contents1, (a, b) -> b)
                     .subscribe(sockets.get(0).downPipe);
-            Observable.interval(10, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
+            Observable.interval(1, TimeUnit.MILLISECONDS).zipWith(contents2, (a, b) -> b)
                     .subscribe(sockets.get(1).downPipe);
 
             // P5 should have received every message from P1 in order
-            testfromP1.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
+            testfromP1.awaitDone(2, TimeUnit.SECONDS).assertValueCount(msgList1.size()).assertValueSequence(msgList1);
             // P5 should have received every message from P2 in order
-            testfromP2.awaitDone(10, TimeUnit.SECONDS).assertValueCount(msgList2.size()).assertValueSequence(msgList2);
+            testfromP2.awaitDone(1, TimeUnit.SECONDS).assertValueCount(msgList2.size()).assertValueSequence(msgList2);
         } catch (Exception e) {
             fail("exception: " + e.toString());
         }
@@ -142,7 +145,7 @@ public class LocalCausalBroadcastLayerFIFOTest {
 
     @Test
     public void advancedTest() throws InterruptedException {
-        setup(0, 0, 0);
+        setup(0);
 
         closables.forEach(RxClosableSocket::close);
         closables.get(3).open();

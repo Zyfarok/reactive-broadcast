@@ -37,8 +37,8 @@ public class FirstInFirstOutBroadcastLayerTest {
         private static List<RxSocket<MessageContent>> sockets;
         private static List<RxClosableSocket<DatagramPacket>> closables;
 
-        private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-                RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+        private void setup(double dropRate) {
+                RxBadRouter router = new RxBadRouter(dropRate);
 
                 List<Configuration> cfgs = new ArrayList<>();
                 List<SocketAddress> addrs = new ArrayList<>();
@@ -80,7 +80,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         @Test
         public void fifoOneProducer() {
-                setup(0.1, 0.5, 1005);
+                setup(0.1);
                 // P1 sends 10 message, with a high probability the packets will be delayed and
                 // be received unordered
                 // Other processes should have received each packet in order
@@ -112,7 +112,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         @Test
         public void fifoTwoProducers() {
-                setup(0.1, 0.5, 1005);
+                setup(0.1);
                 // P1 sends 10 message, with a high probability the packets will be delayed and
                 // be received unordered
                 // P2 does the same
@@ -154,7 +154,7 @@ public class FirstInFirstOutBroadcastLayerTest {
 
         @Test
         public void advancedTest() throws InterruptedException {
-                setup(0, 0, 0);
+                setup(0);
 
                 closables.forEach(RxClosableSocket::close);
                 closables.get(3).open();

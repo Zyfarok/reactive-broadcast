@@ -15,7 +15,7 @@ public class RxBadRouterTest {
     @Test
     public void perfectBadRouterTransmitPackets() {
         // Create rooter and 2 sockets
-        RxBadRouter rooter = new RxBadRouter(0, 0.5, 1, MILLISECONDS);
+        RxBadRouter rooter = new RxBadRouter(0);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);
@@ -58,7 +58,7 @@ public class RxBadRouterTest {
     @Test
     public void worstBadRouterNeverTransmitPacket() throws InterruptedException {
         // Create rooter and 2 sockets
-        RxBadRouter rooter = new RxBadRouter(1, 0.0, 0, MILLISECONDS);
+        RxBadRouter rooter = new RxBadRouter(1);
 
         SocketAddress address1 = new InetSocketAddress("127.0.0.1",1000);
         SocketAddress address2 = new InetSocketAddress("127.0.0.1",1001);

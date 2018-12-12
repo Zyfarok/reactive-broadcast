@@ -35,8 +35,8 @@ public class LocalCausalBroadcastLayerLivenessTest {
     private static List<RxSocket<MessageContent>> sockets;
     private static List<RxClosableSocket<DatagramPacket>> closables;
 
-    public void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-        RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+    public void setup(double dropRate) {
+        RxBadRouter router = new RxBadRouter(dropRate);
 
         List<LCBConfiguration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
@@ -87,7 +87,7 @@ public class LocalCausalBroadcastLayerLivenessTest {
 
     @Test
     public void testLiveness() {
-        setup(0, 0, 0);
+        setup(0);
 
         int messageCount = 2;
         try {

@@ -33,8 +33,8 @@ public class LocalCausalBroadcastLayerSafetyTest {
     private static List<RxClosableSocket<DatagramPacket>> closables;
     private static RxBadRouter router;
 
-    private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-        RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+    private void setup(double dropRate) {
+        RxBadRouter router = new RxBadRouter(dropRate);
 
         List<LCBConfiguration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
@@ -88,7 +88,7 @@ public class LocalCausalBroadcastLayerSafetyTest {
 
     @Test
     public void testSafety() {
-        setup(0, 0, 0);
+        setup(0);
 
         int messageCount = 2;
         try {

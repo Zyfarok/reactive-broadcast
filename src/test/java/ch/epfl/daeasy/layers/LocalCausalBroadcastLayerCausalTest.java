@@ -37,8 +37,8 @@ public class LocalCausalBroadcastLayerCausalTest {
     private static List<RxClosableSocket<DatagramPacket>> closables;
     private static List<SocketAddress> addrs;
 
-    private void setup(double dropRate, double loopRate, long delayStepMilliseconds) {
-        RxBadRouter router = new RxBadRouter(dropRate, loopRate, delayStepMilliseconds, TimeUnit.MILLISECONDS);
+    private void setup(double dropRate) {
+        RxBadRouter router = new RxBadRouter(dropRate);
 
         List<LCBConfiguration> cfgs = new ArrayList<>();
         List<SocketAddress> addrs = new ArrayList<>();
@@ -94,7 +94,7 @@ public class LocalCausalBroadcastLayerCausalTest {
 
     @Test
     public void testCausal() {
-        setup(0.4, 0.5, 500);
+        setup(0.4);
         //setup(0, 0, 0);
 
         try {
