@@ -56,17 +56,16 @@ public class Main {
 
         try {
             switch (cfg.getMode()) {
-                case FIFO:
-                    Logging.debug("da_proc FIFO " + p.toString() + " running");
-                    FIFO.run((FIFOConfiguration) cfg, p, activator);
-                    break;
-                case LCB:
-                    Logging.debug("da_proc LCB " + p.toString() + " running");
-                    // TODO : Uncomment this
-                    //LCB.run((LCBConfiguration) cfg, p, activator);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("unsupported mode");
+            case FIFO:
+                Logging.debug("da_proc FIFO " + p.toString() + " running");
+                FIFO.run((FIFOConfiguration) cfg, p, activator);
+                break;
+            case LCB:
+                Logging.debug("da_proc LCB " + p.toString() + " running");
+                LCB.run((LCBConfiguration) cfg, p, activator);
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported mode");
             }
         } catch (Exception e) {
             Logging.debug("an error occured: " + e.getMessage());
