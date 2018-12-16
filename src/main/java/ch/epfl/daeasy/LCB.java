@@ -42,7 +42,7 @@ public class LCB {
         RxSocket<DAPacket<CausalMessageContent>> plSocket = converterSocket.stack(perfectLinkLayer);
         // add the best effort broadcast layer
         RxSocket<DAPacket<CausalMessageContent>> bebSocket = plSocket.stack(new BestEffortBroadcastLayer<>(cfg));
-        // add the best effort broadcast layer
+        // add the best uniform reliable broadcast layer
         RxSocket<CausalMessageContent> urbSocket = bebSocket.stack(new UniformReliableBroadcastLayer<>(cfg));
         // add the lcb layer
         RxSocket<MessageContent> lcbSocket = urbSocket.stack(new LocalizedCausalBroadcastLayer(cfg));
@@ -64,11 +64,8 @@ public class LCB {
                 System.exit(-1);
             }
 
-            Observable.interval(1, TimeUnit.MILLISECONDS)
-                    .zipWith(
-                            Observable.range(0, cfg.m)
-                                    .map(j -> MessageContent.createMessage(p.getPID(), seq.incrementAndGet())),
-                            (i, msg) -> msg)
+            Observable.range(0, cfg.m)
+                    .map(j -> MessageContent.createMessage(p.getPID(), seq.incrementAndGet()))
                     .subscribe(lcbSocket.downPipe);
         }
     }
