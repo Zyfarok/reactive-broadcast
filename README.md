@@ -1,4 +1,4 @@
-# DA Project 2018
+# Reactive Broadcast
 FIFO and Causal Broadcast implement in Java with ReactiveX 
 
 ## Authors:
