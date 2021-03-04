@@ -2,9 +2,9 @@
 FIFO and Causal Broadcast implement in Java with ReactiveX 
 
 ## Authors:
-    Clément Burgelin (SCIPER: 249954)
-    Vikalp Kamdar (SCIPER: 228272)
-    Pierre Thévenet (SCIPER: 246645)
+    Clément Burgelin
+    Vikalp Kamdar
+    Pierre Thévenet
 
 ## Build & Run
 	make
