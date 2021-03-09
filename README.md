@@ -12,7 +12,7 @@ FIFO and Causal Broadcast implement in Java with ReactiveX
 
 Which is equivalent to :
 
-    /gradlew makeJar
+    ./gradlew makeJar
     cp build/libs/*.jar .
     java -jar DaProject-all-*.jar $id $membership_file_path $n
 
